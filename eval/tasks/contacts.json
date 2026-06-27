@@ -1,0 +1,8 @@
+[
+  { "input": { "text": "Hi, I'm Dana Levi - email dana.levi@example.com, cell +1 415 555 0132." }, "expect": { "name": "Dana Levi", "email": "dana.levi@example.com" } },
+  { "input": { "text": "Contact: Omar Said (omar.said@workmail.io)." }, "expect": { "name": "Omar Said", "email": "omar.said@workmail.io" } },
+  { "input": { "text": "Reach Priya at priya_k@startup.dev or 020-7946-0991." }, "expect": { "name": "Priya", "email": "priya_k@startup.dev" } },
+  { "input": { "text": "From the desk of Dr. Chen Wei. Mail: chen.wei@uni.edu.cn" }, "expect": { "name": "Chen Wei", "email": "chen.wei@uni.edu.cn" } },
+  { "input": { "text": "yo its marcus, hmu marcus99@gmail.com" }, "expect": { "name": "marcus", "email": "marcus99@gmail.com" } },
+  { "input": { "text": "Invoice prepared by Sofia Rossi, sofia@rossi-design.it, tel +39 06 1234567" }, "expect": { "name": "Sofia Rossi", "email": "sofia@rossi-design.it" } }
+]

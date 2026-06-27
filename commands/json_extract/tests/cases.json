@@ -1,0 +1,20 @@
+[
+  {
+    "input": {
+      "text": "Order #4821 was placed by Maria Chen on 2026-03-14 and shipped to Berlin.",
+      "fields": ["order_id", "customer", "ship_city", "date"]
+    }
+  },
+  {
+    "input": {
+      "text": "The conference keynote covered transformer scaling laws.",
+      "fields": ["speaker", "topic", "venue"]
+    }
+  },
+  {
+    "input": {
+      "text": "",
+      "fields": ["name", "email"]
+    }
+  }
+]

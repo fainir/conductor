@@ -1,0 +1,5 @@
+[
+  { "input": { "text": "hello world" }, "expect": { "words": 2, "chars": 11 } },
+  { "input": { "text": "  one  " }, "expect": { "words": 1, "chars": 7 } },
+  { "input": { "text": "" }, "expect": { "words": 0, "chars": 0 } }
+]
