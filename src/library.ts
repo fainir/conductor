@@ -24,12 +24,19 @@ import * as fix_json from "../commands/fix_json/index.js";
 import * as extract_dates from "../commands/extract_dates/index.js";
 import * as categorize from "../commands/categorize/index.js";
 import * as translate from "../commands/translate/index.js";
+import * as base64_encode from "../commands/base64_encode/index.js";
+import * as base64_decode from "../commands/base64_decode/index.js";
+import * as extract_emails from "../commands/extract_emails/index.js";
+import * as json_minify from "../commands/json_minify/index.js";
+import * as to_snake_case from "../commands/to_snake_case/index.js";
+import * as detect_language from "../commands/detect_language/index.js";
 
 const MODULES = [
   slugify, word_count, normalize_phone, extract_contact, summarize,
   extract_keywords, classify_sentiment, redact_pii, json_extract,
   truncate, dedupe_lines, extract_urls, template_fill,
   fix_json, extract_dates, categorize, translate,
+  base64_encode, base64_decode, extract_emails, json_minify, to_snake_case, detect_language,
 ] as any[];
 
 export function library(): Map<string, CommandModule> {

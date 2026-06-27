@@ -78,6 +78,12 @@ stochastic commands run hermetic `claude -p` sub-calls on that subscription.
 | `extract_dates` | stochastic | each date is valid ISO-8601 `YYYY-MM-DD` |
 | `categorize` | stochastic | chosen category is one of the allowed set |
 | `translate` | stochastic | non-empty, length-sane translation |
+| `base64_encode` | pure | round-trips (decode equals input) |
+| `base64_decode` | pure | round-trips (re-encode equals input) |
+| `extract_emails` | pure | each email valid and present in source |
+| `json_minify` | pure | output is JSON-equivalent to input |
+| `to_snake_case` | pure | recomputed canonical form |
+| `detect_language` | stochastic | valid ISO 639-1 two-letter code |
 
 ## Run it
 
@@ -97,6 +103,11 @@ npx tsx eval/run-tests.ts slugify    # one
 # evals: baseline (naive) vs conductor
 REPEATS=2 npx tsx eval/run-eval.ts        # single-shot extraction
 REPEATS=2 npx tsx eval/contact-card.ts    # composition pipeline
+REPEATS=1 npx tsx eval/triage.ts          # 4-step pipeline
+
+# reliability scoreboard (what the router consults) + goal-based routing
+npm run scores
+npx tsx src/cli.ts route "make a url slug" '{"text":"Hello World"}'
 ```
 
 ## Results (measured)

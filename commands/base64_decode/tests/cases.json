@@ -1,0 +1,5 @@
+[
+  { "input": { "encoded": "aGVsbG8=" }, "expect": { "text": "hello" } },
+  { "input": { "encoded": "Q2Fmw6k=" }, "expect": { "text": "Café" } },
+  { "input": { "encoded": "" }, "expect": { "text": "" } }
+]

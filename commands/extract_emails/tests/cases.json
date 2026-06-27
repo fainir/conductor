@@ -1,0 +1,5 @@
+[
+  { "input": { "text": "reach a@b.com or c@d.org" }, "expect": { "emails": ["a@b.com", "c@d.org"] } },
+  { "input": { "text": "no emails in here" }, "expect": { "emails": [] } },
+  { "input": { "text": "x@y.io and again x@y.io" }, "expect": { "emails": ["x@y.io"] } }
+]

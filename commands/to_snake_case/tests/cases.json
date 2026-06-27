@@ -1,0 +1,5 @@
+[
+  { "input": { "text": "Hello World" }, "expect": { "snake": "hello_world" } },
+  { "input": { "text": "fooBar" }, "expect": { "snake": "foo_bar" } },
+  { "input": { "text": "a-b-c" }, "expect": { "snake": "a_b_c" } }
+]

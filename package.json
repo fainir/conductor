@@ -1,8 +1,11 @@
 {
-  "name": "conductor",
-  "version": "0.3.0",
-  "private": true,
+  "name": "@fainir/conductor",
+  "version": "0.4.0",
   "type": "module",
+  "license": "MIT",
+  "author": "fainir",
+  "repository": { "type": "git", "url": "https://github.com/fainir/conductor.git" },
+  "publishConfig": { "access": "public" },
   "description": "A thin deterministic conductor that drives Claude Code as its engine. Reliability via contracts + mandatory verifiers + fallback-to-freeform.",
   "bin": {
     "conductor-mcp": "dist/conductor-mcp.cjs"
@@ -19,7 +22,9 @@
     "eval": "tsx eval/run-eval.ts",
     "typecheck": "tsc --noEmit",
     "build": "esbuild src/mcp.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/conductor-mcp.cjs --banner:js=\"#!/usr/bin/env node\"",
-    "release": "node scripts/release.mjs"
+    "release": "node scripts/release.mjs",
+    "scores": "tsx src/scores.ts",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
