@@ -1,0 +1,5 @@
+[
+  { "input": { "json": "{ \"a\": 1, \"b\": [1, 2, 3] }" }, "expect": { "minified": "{\"a\":1,\"b\":[1,2,3]}" } },
+  { "input": { "json": "[1,  2,   3]" }, "expect": { "minified": "[1,2,3]" } },
+  { "input": { "json": "{\n  \"nested\": { \"x\": true }\n}" }, "expect": { "minified": "{\"nested\":{\"x\":true}}" } }
+]

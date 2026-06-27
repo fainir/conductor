@@ -1,0 +1,5 @@
+[
+  { "input": { "text": "Bonjour le monde, comment allez-vous aujourd'hui?" } },
+  { "input": { "text": "Hola, ¿cómo estás hoy?" } },
+  { "input": { "text": "Hello there, how are you doing?" } }
+]

@@ -19130,6 +19130,197 @@ async function verify17(output, input, _ctx) {
   );
 }
 
+// commands/base64_encode/index.ts
+var base64_encode_exports = {};
+__export(base64_encode_exports, {
+  manifest: () => manifest18,
+  run: () => run8,
+  verify: () => verify18
+});
+var manifest18 = {
+  name: "base64_encode",
+  description: "Encode a UTF-8 string to base64.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false },
+  outputSchema: { type: "object", properties: { encoded: { type: "string" } }, required: ["encoded"], additionalProperties: false },
+  fallbacks: [],
+  effectful: false
+};
+async function run8(input) {
+  return { encoded: Buffer.from(input.text, "utf8").toString("base64") };
+}
+async function verify18(output, input, _ctx) {
+  return combine(
+    check2("string", typeof output?.encoded === "string", "encoded must be a string"),
+    check2("round-trip", Buffer.from(output?.encoded ?? "", "base64").toString("utf8") === input.text, "encoded does not decode back to the input")
+  );
+}
+
+// commands/base64_decode/index.ts
+var base64_decode_exports = {};
+__export(base64_decode_exports, {
+  manifest: () => manifest19,
+  run: () => run9,
+  verify: () => verify19
+});
+var manifest19 = {
+  name: "base64_decode",
+  description: "Decode a base64 string to UTF-8 text.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: { type: "object", properties: { encoded: { type: "string" } }, required: ["encoded"], additionalProperties: false },
+  outputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false },
+  fallbacks: [],
+  effectful: false
+};
+async function run9(input) {
+  return { text: Buffer.from(input.encoded, "base64").toString("utf8") };
+}
+async function verify19(output, input, _ctx) {
+  const norm = (s) => s.replace(/=+$/, "");
+  const reencoded = Buffer.from(output?.text ?? "", "utf8").toString("base64");
+  return combine(
+    check2("string", typeof output?.text === "string", "text must be a string"),
+    check2("round-trip", norm(reencoded) === norm(input.encoded), "text does not re-encode to the input base64")
+  );
+}
+
+// commands/extract_emails/index.ts
+var extract_emails_exports = {};
+__export(extract_emails_exports, {
+  manifest: () => manifest20,
+  run: () => run10,
+  verify: () => verify20
+});
+var manifest20 = {
+  name: "extract_emails",
+  description: "Extract all email addresses from text.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false },
+  outputSchema: {
+    type: "object",
+    properties: { emails: { type: "array", items: { type: "string" } } },
+    required: ["emails"],
+    additionalProperties: false
+  },
+  fallbacks: [],
+  effectful: false
+};
+async function run10(input) {
+  const matches = input.text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/g) ?? [];
+  return { emails: [...new Set(matches)] };
+}
+async function verify20(output, input, _ctx) {
+  if (!Array.isArray(output?.emails)) return { ok: false, feedback: "emails must be an array" };
+  for (const e of output.emails) {
+    if (typeof e !== "string" || !EMAIL_RE.test(e)) return { ok: false, feedback: `'${e}' is not a valid email` };
+    if (!input.text.includes(e)) return { ok: false, feedback: `'${e}' does not appear in the source text` };
+  }
+  return { ok: true, score: 1 };
+}
+
+// commands/json_minify/index.ts
+var json_minify_exports = {};
+__export(json_minify_exports, {
+  manifest: () => manifest21,
+  run: () => run11,
+  verify: () => verify21
+});
+var manifest21 = {
+  name: "json_minify",
+  description: "Minify a JSON string by removing insignificant whitespace.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: { type: "object", properties: { json: { type: "string" } }, required: ["json"], additionalProperties: false },
+  outputSchema: { type: "object", properties: { minified: { type: "string" } }, required: ["minified"], additionalProperties: false },
+  fallbacks: [],
+  effectful: false
+};
+async function run11(input) {
+  return { minified: JSON.stringify(JSON.parse(input.json)) };
+}
+async function verify21(output, input, _ctx) {
+  if (typeof output?.minified !== "string") return { ok: false, feedback: "minified must be a string" };
+  let a;
+  let b;
+  try {
+    a = JSON.stringify(JSON.parse(input.json));
+  } catch {
+    return { ok: false, feedback: "input json is not valid JSON" };
+  }
+  try {
+    b = JSON.stringify(JSON.parse(output.minified));
+  } catch {
+    return { ok: false, feedback: "minified is not valid JSON" };
+  }
+  if (a !== b) return { ok: false, feedback: "minified is not equivalent to the input json" };
+  return { ok: true, score: 1 };
+}
+
+// commands/to_snake_case/index.ts
+var to_snake_case_exports = {};
+__export(to_snake_case_exports, {
+  manifest: () => manifest22,
+  run: () => run12,
+  verify: () => verify22
+});
+function toSnake(text) {
+  return text.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+}
+var manifest22 = {
+  name: "to_snake_case",
+  description: "Convert a string to snake_case.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false },
+  outputSchema: { type: "object", properties: { snake: { type: "string" } }, required: ["snake"], additionalProperties: false },
+  fallbacks: [],
+  effectful: false
+};
+async function run12(input) {
+  return { snake: toSnake(input.text) };
+}
+async function verify22(output, input, _ctx) {
+  return combine(
+    check2("string", typeof output?.snake === "string", "snake must be a string"),
+    check2("recompute", output?.snake === toSnake(input.text), "snake does not match the canonical snake_case of the input")
+  );
+}
+
+// commands/detect_language/index.ts
+var detect_language_exports = {};
+__export(detect_language_exports, {
+  manifest: () => manifest23,
+  verify: () => verify23
+});
+var manifest23 = {
+  name: "detect_language",
+  description: "Detect the natural language of text.",
+  determinism: "stochastic",
+  trust: "human-verified",
+  model: "sonnet",
+  systemPrompt: "You detect the natural language of the user-provided text. Use only the text. Return the language name and its ISO 639-1 two-letter lowercase code.",
+  promptTemplate: "Detect the language of the INPUT text. Return the language (English name) and code (ISO 639-1 two-letter lowercase, e.g. en, fr, es, de).",
+  inputSchema: { type: "object", properties: { text: { type: "string" } }, required: ["text"], additionalProperties: false },
+  outputSchema: {
+    type: "object",
+    properties: { language: { type: "string" }, code: { type: "string" } },
+    required: ["language", "code"],
+    additionalProperties: false
+  },
+  fallbacks: ["freeform"],
+  effectful: false,
+  maxAttempts: 2
+};
+async function verify23(output, _input, _ctx) {
+  return combine(
+    check2("language", typeof output?.language === "string" && output.language.trim().length > 0, "language must be a non-empty string"),
+    check2("code", typeof output?.code === "string" && /^[a-z]{2}$/.test(output.code), "code must be a 2-letter ISO 639-1 lowercase code")
+  );
+}
+
 // src/library.ts
 var MODULES = [
   slugify_exports,
@@ -19148,17 +19339,23 @@ var MODULES = [
   fix_json_exports,
   extract_dates_exports,
   categorize_exports,
-  translate_exports
+  translate_exports,
+  base64_encode_exports,
+  base64_decode_exports,
+  extract_emails_exports,
+  json_minify_exports,
+  to_snake_case_exports,
+  detect_language_exports
 ];
 function library() {
   const map = /* @__PURE__ */ new Map();
   for (const mod of MODULES) {
-    const { manifest: manifest18, verify: verify18, run: run8 } = mod;
-    if (!manifest18) throw new Error("command module is missing a 'manifest' export");
-    if (typeof verify18 !== "function") {
-      throw new Error(`command '${manifest18.name}': MANDATORY 'verify' export missing.`);
+    const { manifest: manifest24, verify: verify24, run: run13 } = mod;
+    if (!manifest24) throw new Error("command module is missing a 'manifest' export");
+    if (typeof verify24 !== "function") {
+      throw new Error(`command '${manifest24.name}': MANDATORY 'verify' export missing.`);
     }
-    map.set(manifest18.name, { manifest: manifest18, verify: verify18, run: run8 });
+    map.set(manifest24.name, { manifest: manifest24, verify: verify24, run: run13 });
   }
   return map;
 }
