@@ -70,6 +70,14 @@ stochastic commands run hermetic `claude -p` sub-calls on that subscription.
 | `classify_sentiment` | stochastic | enum label + confidence in 0..1 |
 | `redact_pii` | stochastic | no email/phone may remain in output |
 | `json_extract` | stochastic | every requested field present as a key |
+| `truncate` | pure | output length never exceeds `max` |
+| `dedupe_lines` | pure | no duplicates; every line from the source |
+| `extract_urls` | pure | each URL matches pattern and appears in source |
+| `template_fill` | pure | no unresolved `{{placeholders}}` remain |
+| `fix_json` | stochastic | result is a valid parsed JSON value |
+| `extract_dates` | stochastic | each date is valid ISO-8601 `YYYY-MM-DD` |
+| `categorize` | stochastic | chosen category is one of the allowed set |
+| `translate` | stochastic | non-empty, length-sane translation |
 
 ## Run it
 

@@ -1,0 +1,14 @@
+[
+  {
+    "input": { "text": "My package never arrived", "categories": ["billing", "shipping", "technical"] },
+    "expect": { "category": "shipping" }
+  },
+  {
+    "input": { "text": "I was charged twice for my subscription", "categories": ["billing", "shipping", "technical"] },
+    "expect": { "category": "billing" }
+  },
+  {
+    "input": { "text": "The app crashes every time I open it on launch", "categories": ["billing", "shipping", "technical"] },
+    "expect": { "category": "technical" }
+  }
+]

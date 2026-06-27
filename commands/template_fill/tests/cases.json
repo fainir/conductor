@@ -1,0 +1,18 @@
+[
+  {
+    "input": { "template": "Hi {{name}}, you are {{age}}", "data": { "name": "Sam", "age": 30 } },
+    "expect": { "result": "Hi Sam, you are 30" }
+  },
+  {
+    "input": { "template": "{{a}}-{{b}}", "data": { "a": "x", "b": "y" } },
+    "expect": { "result": "x-y" }
+  },
+  {
+    "input": { "template": "Order {{id}} for {{customer}}", "data": { "id": 7, "customer": "Acme" } },
+    "expect": { "result": "Order 7 for Acme" }
+  },
+  {
+    "input": { "template": "{{greeting}} world", "data": { "greeting": "Hello" } },
+    "expect": { "result": "Hello world" }
+  }
+]

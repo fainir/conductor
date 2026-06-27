@@ -1,0 +1,5 @@
+[
+  { "input": { "text": "{name:'Sam', age:30,}" } },
+  { "input": { "text": "```json\n{\"a\":1,\"b\":[1,2,3]}\n```" } },
+  { "input": { "text": "items: [1, 2, 3" } }
+]

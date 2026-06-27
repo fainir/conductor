@@ -1,0 +1,6 @@
+[
+  { "input": { "text": "hello world", "max": 5 }, "expect": { "text": "hell…" } },
+  { "input": { "text": "hi", "max": 5 }, "expect": { "text": "hi" } },
+  { "input": { "text": "abcdef", "max": 3 }, "expect": { "text": "ab…" } },
+  { "input": { "text": "exact", "max": 5 }, "expect": { "text": "exact" } }
+]

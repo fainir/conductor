@@ -1,0 +1,11 @@
+[
+  {
+    "input": { "text": "Good morning, friend.", "target_language": "Spanish" }
+  },
+  {
+    "input": { "text": "Where is the train station?", "target_language": "French" }
+  },
+  {
+    "input": { "text": "Thank you very much.", "target_language": "German" }
+  }
+]

@@ -1,0 +1,18 @@
+[
+  {
+    "input": { "text": "see https://a.com and http://b.org/x" },
+    "expect": { "urls": ["https://a.com", "http://b.org/x"] }
+  },
+  {
+    "input": { "text": "no links here" },
+    "expect": { "urls": [] }
+  },
+  {
+    "input": { "text": "dup https://a.com again https://a.com end" },
+    "expect": { "urls": ["https://a.com"] }
+  },
+  {
+    "input": { "text": "wrap (https://example.com/path) then <http://t.io> and [https://q.net]" },
+    "expect": { "urls": ["https://example.com/path", "http://t.io", "https://q.net"] }
+  }
+]

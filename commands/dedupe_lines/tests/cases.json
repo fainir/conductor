@@ -1,0 +1,6 @@
+[
+  { "input": { "text": "a\nb\na\nc" }, "expect": { "lines": ["a", "b", "c"] } },
+  { "input": { "text": "x\nx\nx" }, "expect": { "lines": ["x"] } },
+  { "input": { "text": "one" }, "expect": { "lines": ["one"] } },
+  { "input": { "text": "dog\ncat\ndog\nbird\ncat\ndog" }, "expect": { "lines": ["dog", "cat", "bird"] } }
+]
