@@ -18636,6 +18636,500 @@ async function verify9(output, input, _ctx) {
   );
 }
 
+// commands/truncate/index.ts
+var truncate_exports = {};
+__export(truncate_exports, {
+  manifest: () => manifest10,
+  run: () => run4,
+  verify: () => verify10
+});
+function truncate(text, max) {
+  if (text.length <= max) return text;
+  if (max <= 1) return text.slice(0, Math.max(0, max));
+  return text.slice(0, max - 1) + "\u2026";
+}
+var manifest10 = {
+  name: "truncate",
+  description: "Truncate text to at most `max` characters, appending a single-character ellipsis when it must be cut.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string" },
+      max: { type: "number" }
+    },
+    required: ["text", "max"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string" }
+    },
+    required: ["text"],
+    additionalProperties: false
+  },
+  fallbacks: [],
+  effectful: false
+};
+async function run4(input) {
+  return { text: truncate(input.text, input.max) };
+}
+async function verify10(output, input, _ctx) {
+  return combine(
+    check2("string", typeof output.text === "string", "text must be a string"),
+    check2(
+      "length",
+      typeof output.text === "string" && output.text.length <= input.max,
+      "text length must be <= max (" + input.max + ")"
+    ),
+    check2(
+      "recompute",
+      output.text === truncate(input.text, input.max),
+      "text must equal the input truncated to max characters with a single-character ellipsis appended when cut"
+    )
+  );
+}
+
+// commands/dedupe_lines/index.ts
+var dedupe_lines_exports = {};
+__export(dedupe_lines_exports, {
+  manifest: () => manifest11,
+  run: () => run5,
+  verify: () => verify11
+});
+function dedupe(text) {
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const line of text.split("\n")) {
+    if (!seen.has(line)) {
+      seen.add(line);
+      out.push(line);
+    }
+  }
+  return out;
+}
+var manifest11 = {
+  name: "dedupe_lines",
+  description: "Split text on newlines and keep the first occurrence of each line, preserving order.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: {
+    type: "object",
+    properties: { text: { type: "string" } },
+    required: ["text"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      lines: { type: "array", items: { type: "string" } }
+    },
+    required: ["lines"],
+    additionalProperties: false
+  },
+  fallbacks: [],
+  effectful: false
+};
+async function run5(input) {
+  return { lines: dedupe(input.text) };
+}
+async function verify11(output, input, _ctx) {
+  const lines = output.lines;
+  if (!Array.isArray(lines)) {
+    return { ok: false, score: 0, feedback: "array: lines must be an array of strings" };
+  }
+  const allStrings = lines.every((l) => typeof l === "string");
+  const source = input.text.split("\n");
+  const sourceSet = new Set(source);
+  const expected = dedupe(input.text);
+  return combine(
+    check2("strings", allStrings, "every element of lines must be a string"),
+    check2(
+      "no-duplicates",
+      new Set(lines).size === lines.length,
+      "lines must not contain any duplicate values"
+    ),
+    check2(
+      "members",
+      lines.every((l) => sourceSet.has(l)),
+      "every line must be a member of input.text.split('\\n')"
+    ),
+    check2(
+      "recompute",
+      JSON.stringify(lines) === JSON.stringify(expected),
+      "lines must equal the input split on newlines with the first occurrence of each line kept in order"
+    )
+  );
+}
+
+// commands/extract_urls/index.ts
+var extract_urls_exports = {};
+__export(extract_urls_exports, {
+  manifest: () => manifest12,
+  run: () => run6,
+  verify: () => verify12
+});
+var URL_FIND = /https?:\/\/[^\s)>\]]+/g;
+var URL_SHAPE = /^https?:\/\/[^\s]+$/;
+function extract(text) {
+  const matches = text.match(URL_FIND) ?? [];
+  const seen = /* @__PURE__ */ new Set();
+  const out = [];
+  for (const m of matches) {
+    if (!seen.has(m)) {
+      seen.add(m);
+      out.push(m);
+    }
+  }
+  return out;
+}
+var manifest12 = {
+  name: "extract_urls",
+  description: "Extract all http(s) URLs from a text, deduped while preserving first-seen order.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: {
+    type: "object",
+    properties: { text: { type: "string" } },
+    required: ["text"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      urls: { type: "array", items: { type: "string" } }
+    },
+    required: ["urls"],
+    additionalProperties: false
+  },
+  fallbacks: [],
+  effectful: false
+};
+async function run6(input) {
+  return { urls: extract(input.text) };
+}
+async function verify12(output, input, _ctx) {
+  const urls = output.urls;
+  if (!Array.isArray(urls)) {
+    return { ok: false, score: 0, feedback: "urls: must be an array" };
+  }
+  const checks = [];
+  for (let i = 0; i < urls.length; i++) {
+    const u = urls[i];
+    checks.push(check2("string", typeof u === "string", "urls[" + i + "] must be a string"));
+    if (typeof u === "string") {
+      checks.push(
+        check2(
+          "shape",
+          URL_SHAPE.test(u),
+          "urls[" + i + "] must match /^https?:\\/\\/[^\\s]+$/ (a valid http(s) URL with no whitespace)"
+        )
+      );
+      checks.push(
+        check2(
+          "grounded",
+          input.text.includes(u),
+          "urls[" + i + "] (" + u + ") must appear literally in the input text"
+        )
+      );
+    }
+  }
+  return combine(...checks);
+}
+
+// commands/template_fill/index.ts
+var template_fill_exports = {};
+__export(template_fill_exports, {
+  manifest: () => manifest13,
+  run: () => run7,
+  verify: () => verify13
+});
+var TOKEN = /\{\{(\w+)\}\}/g;
+var UNRESOLVED = /\{\{\w+\}\}/;
+function fill(template, data) {
+  return template.replace(
+    TOKEN,
+    (match, key) => Object.prototype.hasOwnProperty.call(data, key) ? String(data[key]) : match
+  );
+}
+var manifest13 = {
+  name: "template_fill",
+  description: "Fill a template by replacing every {{key}} token with String(data[key]); unknown keys keep their {{key}} token.",
+  determinism: "pure",
+  trust: "human-verified",
+  inputSchema: {
+    type: "object",
+    properties: {
+      template: { type: "string" },
+      data: { type: "object" }
+    },
+    required: ["template", "data"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      result: { type: "string" }
+    },
+    required: ["result"],
+    additionalProperties: false
+  },
+  fallbacks: [],
+  effectful: false
+};
+async function run7(input) {
+  return { result: fill(input.template, input.data) };
+}
+async function verify13(output, input, _ctx) {
+  const out = output;
+  const expected = fill(input.template, input.data);
+  return combine(
+    check2("string", typeof out.result === "string", "result must be a string"),
+    check2(
+      "recompute",
+      typeof out.result === "string" && out.result === expected,
+      "result must equal the template with each {{key}} replaced by String(data[key]) and unknown keys left unchanged"
+    ),
+    check2(
+      "no-unresolved",
+      typeof out.result === "string" && UNRESOLVED.test(out.result) === false,
+      "an unfilled {{placeholder}} remains in result - every {{key}} token must be resolved"
+    )
+  );
+}
+
+// commands/fix_json/index.ts
+var fix_json_exports = {};
+__export(fix_json_exports, {
+  manifest: () => manifest14,
+  verify: () => verify14
+});
+var manifest14 = {
+  name: "fix_json",
+  description: "Repair malformed or loosely-formatted JSON text into a valid JSON value.",
+  determinism: "stochastic",
+  trust: "human-verified",
+  model: "sonnet",
+  systemPrompt: "You repair broken JSON. Read ONLY the user-provided text and parse it into the JSON value it was clearly meant to be. Fix common defects: single quotes, unquoted keys, trailing commas, surrounding code fences or prose, and unclosed brackets or braces. Do not invent, add, drop, or guess fields or values beyond what the text plainly implies. Never use outside knowledge or memory.",
+  promptTemplate: "The INPUT JSON appended below has a field 'text' containing malformed or loosely-formatted JSON. Parse that text into the JSON value it was intended to represent and return it under the key 'json'. Use ONLY the content of 'text'; do not invent fields. If a bracket or brace is unclosed, close it to form the most plausible value implied by the text.",
+  inputSchema: {
+    type: "object",
+    properties: { text: { type: "string" } },
+    required: ["text"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: { json: {} },
+    required: ["json"],
+    additionalProperties: false
+  },
+  fallbacks: ["freeform"],
+  effectful: false,
+  maxAttempts: 2
+};
+async function verify14(output, _input, _ctx) {
+  if (typeof output !== "object" || output === null) {
+    return { ok: false, score: 0, feedback: "output must be a non-null object with a 'json' key" };
+  }
+  const o = output;
+  return combine(
+    check2(
+      "json-present",
+      o.json !== void 0 && o.json !== null,
+      "output.json must be defined and non-null"
+    ),
+    check2(
+      "json-shape",
+      typeof o.json === "object" && o.json !== null,
+      "output.json should be an object or array (the typical shape of repaired JSON)"
+    )
+  );
+}
+
+// commands/extract_dates/index.ts
+var extract_dates_exports = {};
+__export(extract_dates_exports, {
+  manifest: () => manifest15,
+  verify: () => verify15
+});
+var manifest15 = {
+  name: "extract_dates",
+  description: "Extract every date referenced in a piece of text, normalized to ISO format YYYY-MM-DD.",
+  determinism: "stochastic",
+  trust: "human-verified",
+  model: "sonnet",
+  systemPrompt: "You extract dates from the user-provided text ONLY. Read the 'text' field from the appended INPUT JSON. Never use outside knowledge, memory, the current date, or any ambient context. Return every date that is actually referenced in the text, each normalized to ISO format YYYY-MM-DD. Do not invent, infer, or complete dates that are not present. If the text references no dates, return an empty array.",
+  promptTemplate: "Read the 'text' field from the INPUT JSON appended below. Extract every date that is actually referenced in that text. Normalize each date to ISO format YYYY-MM-DD (four-digit year, two-digit month, two-digit day). Use ONLY what literally appears in the text - never use the current date or any outside knowledge. If no dates are referenced, return an empty array. Return an object with a single key 'dates' whose value is the array of ISO date strings.",
+  inputSchema: {
+    type: "object",
+    properties: { text: { type: "string" } },
+    required: ["text"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      dates: { type: "array", items: { type: "string" } }
+    },
+    required: ["dates"],
+    additionalProperties: false
+  },
+  fallbacks: ["freeform"],
+  effectful: false,
+  maxAttempts: 2
+};
+var ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+var Out5 = external_exports.object({
+  dates: external_exports.array(external_exports.string())
+});
+function isRealIsoDate(d) {
+  if (!ISO_RE.test(d)) return false;
+  const dt = /* @__PURE__ */ new Date(d + "T00:00:00Z");
+  if (Number.isNaN(dt.getTime())) return false;
+  const y = String(dt.getUTCFullYear()).padStart(4, "0");
+  const m = String(dt.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(dt.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${day}` === d;
+}
+async function verify15(output, _input, _ctx) {
+  const parsed = schemaVerdict(Out5, output);
+  if (!parsed.ok) return parsed;
+  const o = output;
+  if (!Array.isArray(o.dates)) {
+    return { ok: false, score: 0, feedback: "dates: must be an array of ISO date strings" };
+  }
+  const firstInvalid = o.dates.find((d) => !isRealIsoDate(d));
+  return combine(
+    check2(
+      "dates-valid",
+      firstInvalid === void 0,
+      `'${firstInvalid}' is not a valid YYYY-MM-DD calendar date`
+    )
+  );
+}
+
+// commands/categorize/index.ts
+var categorize_exports = {};
+__export(categorize_exports, {
+  manifest: () => manifest16,
+  verify: () => verify16
+});
+var manifest16 = {
+  name: "categorize",
+  description: "Choose the single best-fitting category for a piece of text from a provided list of categories.",
+  determinism: "stochastic",
+  trust: "human-verified",
+  model: "sonnet",
+  systemPrompt: "You are a text categorizer. Choose the single best category for the user-provided text using ONLY what the text expresses. Never use outside knowledge, memory, or assumptions beyond what the text itself says. You MUST return exactly one category, and it MUST be copied verbatim from the provided list of categories - do not invent, rename, paraphrase, or pluralize any category.",
+  promptTemplate: "Read the appended INPUT JSON. It has a 'text' field and a 'categories' field (an array of allowed category strings). Choose the SINGLE category from 'categories' that best fits 'text'. Return that category copied verbatim - it must be exactly one of the strings in the 'categories' array. Base the decision ONLY on what the text itself expresses.",
+  inputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string" },
+      categories: { type: "array", items: { type: "string" } }
+    },
+    required: ["text", "categories"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      category: { type: "string" }
+    },
+    required: ["category"],
+    additionalProperties: false
+  },
+  fallbacks: ["freeform"],
+  effectful: false,
+  maxAttempts: 2
+};
+var Out6 = external_exports.object({
+  category: external_exports.string()
+});
+async function verify16(output, input, _ctx) {
+  const parsed = schemaVerdict(Out6, output);
+  if (!parsed.ok) return parsed;
+  const o = output;
+  return combine(
+    check2(
+      "category-string",
+      typeof o.category === "string",
+      `category '${o.category}' must be a string`
+    ),
+    // membership: the returned category must be one of the allowed categories
+    check2(
+      "category-member",
+      input.categories.includes(o.category),
+      `the returned category '${o.category}' is not one of the allowed categories`
+    )
+  );
+}
+
+// commands/translate/index.ts
+var translate_exports = {};
+__export(translate_exports, {
+  manifest: () => manifest17,
+  verify: () => verify17
+});
+var manifest17 = {
+  name: "translate",
+  description: "Translate a piece of text into a given target language.",
+  determinism: "stochastic",
+  trust: "human-verified",
+  model: "sonnet",
+  systemPrompt: "You are a translator. Read the user-provided INPUT JSON, which has fields 'text' and 'target_language'. Translate the value of 'text' into the language named by 'target_language'. Use ONLY the provided text - never add outside knowledge, commentary, or content not present in it. Output only the translation itself, with no notes, labels, quotes, or explanations.",
+  promptTemplate: "Translate the 'text' field of the INPUT JSON below into the language named by the 'target_language' field. Use ONLY what the text says. Return only the translated text - no notes, no labels, no surrounding quotes. Put the result in the 'translation' field of the output.\nINPUT:\n",
+  inputSchema: {
+    type: "object",
+    properties: {
+      text: { type: "string" },
+      target_language: { type: "string" }
+    },
+    required: ["text", "target_language"],
+    additionalProperties: false
+  },
+  outputSchema: {
+    type: "object",
+    properties: {
+      translation: { type: "string" }
+    },
+    required: ["translation"],
+    additionalProperties: false
+  },
+  fallbacks: ["freeform"],
+  effectful: false,
+  maxAttempts: 2
+};
+var Out7 = external_exports.object({
+  translation: external_exports.string()
+});
+async function verify17(output, input, _ctx) {
+  const parsed = schemaVerdict(Out7, output);
+  if (!parsed.ok) return parsed;
+  const o = output;
+  const bound = input.text.length * 5 + 20;
+  return combine(
+    check2(
+      "translation-string",
+      typeof o.translation === "string",
+      "translation must be a string"
+    ),
+    check2(
+      "translation-nonempty",
+      o.translation.trim().length > 0,
+      "translation must not be empty"
+    ),
+    check2(
+      "translation-length",
+      o.translation.length <= bound,
+      `translation length ${o.translation.length} exceeds the sane bound of ${bound} (likely contains notes or extra text)`
+    )
+  );
+}
+
 // src/library.ts
 var MODULES = [
   slugify_exports,
@@ -18646,17 +19140,25 @@ var MODULES = [
   extract_keywords_exports,
   classify_sentiment_exports,
   redact_pii_exports,
-  json_extract_exports
+  json_extract_exports,
+  truncate_exports,
+  dedupe_lines_exports,
+  extract_urls_exports,
+  template_fill_exports,
+  fix_json_exports,
+  extract_dates_exports,
+  categorize_exports,
+  translate_exports
 ];
 function library() {
   const map = /* @__PURE__ */ new Map();
   for (const mod of MODULES) {
-    const { manifest: manifest10, verify: verify10, run: run4 } = mod;
-    if (!manifest10) throw new Error("command module is missing a 'manifest' export");
-    if (typeof verify10 !== "function") {
-      throw new Error(`command '${manifest10.name}': MANDATORY 'verify' export missing.`);
+    const { manifest: manifest18, verify: verify18, run: run8 } = mod;
+    if (!manifest18) throw new Error("command module is missing a 'manifest' export");
+    if (typeof verify18 !== "function") {
+      throw new Error(`command '${manifest18.name}': MANDATORY 'verify' export missing.`);
     }
-    map.set(manifest10.name, { manifest: manifest10, verify: verify10, run: run4 });
+    map.set(manifest18.name, { manifest: manifest18, verify: verify18, run: run8 });
   }
   return map;
 }

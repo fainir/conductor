@@ -1,0 +1,5 @@
+[
+  { "input": { "text": "The kickoff is on March 3, 2026 and the deadline is 2026-04-15." } },
+  { "input": { "text": "No dates mentioned here at all." } },
+  { "input": { "text": "Due 2025-12-31." } }
+]

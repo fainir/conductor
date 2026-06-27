@@ -16,10 +16,20 @@ import * as extract_keywords from "../commands/extract_keywords/index.js";
 import * as classify_sentiment from "../commands/classify_sentiment/index.js";
 import * as redact_pii from "../commands/redact_pii/index.js";
 import * as json_extract from "../commands/json_extract/index.js";
+import * as truncate from "../commands/truncate/index.js";
+import * as dedupe_lines from "../commands/dedupe_lines/index.js";
+import * as extract_urls from "../commands/extract_urls/index.js";
+import * as template_fill from "../commands/template_fill/index.js";
+import * as fix_json from "../commands/fix_json/index.js";
+import * as extract_dates from "../commands/extract_dates/index.js";
+import * as categorize from "../commands/categorize/index.js";
+import * as translate from "../commands/translate/index.js";
 
 const MODULES = [
   slugify, word_count, normalize_phone, extract_contact, summarize,
   extract_keywords, classify_sentiment, redact_pii, json_extract,
+  truncate, dedupe_lines, extract_urls, template_fill,
+  fix_json, extract_dates, categorize, translate,
 ] as any[];
 
 export function library(): Map<string, CommandModule> {
