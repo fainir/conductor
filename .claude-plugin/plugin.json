@@ -1,6 +1,6 @@
 {
   "name": "conductor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Reliable verified commands for Claude Code. Each tool routes through a deterministic verify + retry + fallback loop, and stochastic commands run hermetic claude sub-calls so ambient context can't pollute results.",
   "author": { "name": "fainir" },
   "license": "MIT",

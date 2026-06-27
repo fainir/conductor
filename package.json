@@ -1,6 +1,6 @@
 {
   "name": "conductor",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "A thin deterministic conductor that drives Claude Code as its engine. Reliability via contracts + mandatory verifiers + fallback-to-freeform.",
@@ -18,7 +18,8 @@
     "mcp": "tsx src/mcp.ts",
     "eval": "tsx eval/run-eval.ts",
     "typecheck": "tsc --noEmit",
-    "build": "esbuild src/mcp.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/conductor-mcp.cjs --banner:js=\"#!/usr/bin/env node\""
+    "build": "esbuild src/mcp.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/conductor-mcp.cjs --banner:js=\"#!/usr/bin/env node\"",
+    "release": "node scripts/release.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

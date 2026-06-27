@@ -3,14 +3,14 @@
   "owner": { "name": "fainir" },
   "metadata": {
     "description": "Reliable verified commands for Claude Code, served as MCP tools.",
-    "version": "0.2.0"
+    "version": "0.3.0"
   },
   "plugins": [
     {
       "name": "conductor",
       "source": "./",
       "description": "Reliable verified commands (extract_contact, summarize, redact_pii, normalize_phone, classify_sentiment, ...) exposed as MCP tools. Every call routes through verify + retry + fallback; stochastic commands use hermetic claude sub-calls.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "author": { "name": "fainir" },
       "keywords": ["reliability", "verification", "mcp", "tools"],
       "category": "productivity",
