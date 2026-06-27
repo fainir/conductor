@@ -1,0 +1,27 @@
+[
+  {
+    "input": {
+      "text": "Hi, reach me at jane.doe@example.com or call 555-123-4567 anytime."
+    }
+  },
+  {
+    "input": {
+      "text": "Please email support@acme.co with your account details and we'll follow up."
+    }
+  },
+  {
+    "input": {
+      "text": "Our office line is +1 (415) 867-5309 and the fax is 415.555.0199."
+    }
+  },
+  {
+    "input": {
+      "text": "The quarterly report is due on Friday; no contact information is included here."
+    }
+  },
+  {
+    "input": {
+      "text": "Contact: bob@corp.io, mobile 020 7946 0958, alt alice_smith@mail.org."
+    }
+  }
+]

@@ -1,0 +1,6 @@
+[
+  { "input": { "phone": "(415) 555-0132" }, "expect": { "normalized": "4155550132" } },
+  { "input": { "phone": "+44 20 7946 0991" }, "expect": { "normalized": "+442079460991" } },
+  { "input": { "phone": "06-1234567" }, "expect": { "normalized": "061234567" } },
+  { "input": { "phone": "  +1 (650) 253-0000  " }, "expect": { "normalized": "+16502530000" } }
+]

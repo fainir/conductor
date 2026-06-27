@@ -1,0 +1,5 @@
+[
+  { "input": { "text": "Hello, World!" }, "expect": { "slug": "hello-world" } },
+  { "input": { "text": "Café del Mar" }, "expect": { "slug": "cafe-del-mar" } },
+  { "input": { "text": "Multiple   spaces" }, "expect": { "slug": "multiple-spaces" } }
+]

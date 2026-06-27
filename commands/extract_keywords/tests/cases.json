@@ -1,0 +1,18 @@
+[
+  {
+    "input": {
+      "text": "The quick brown fox jumps over the lazy dog near the riverbank at dawn.",
+      "k": 3
+    }
+  },
+  {
+    "input": {
+      "text": "Conductor is a deterministic harness that runs commands. Each command declares a contract and a mandatory verifier, which keeps stochastic model calls reliable and grounded in the input."
+    }
+  },
+  {
+    "input": {
+      "text": "rust"
+    }
+  }
+]

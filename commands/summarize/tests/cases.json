@@ -1,0 +1,19 @@
+[
+  {
+    "input": {
+      "text": "The library opened a new wing this spring. It houses a rare-manuscript collection donated by a local historian. Visitors can request supervised access on weekday afternoons. The wing also includes a small reading room with natural light."
+    }
+  },
+  {
+    "input": {
+      "text": "Our quarterly revenue grew by twelve percent compared with the previous quarter. Most of the increase came from subscription renewals rather than new customers. Marketing spend stayed flat, so margins improved. The board asked the team to focus on retention next quarter.",
+      "max_sentences": 1
+    }
+  },
+  {
+    "input": {
+      "text": "The hiking trail begins at the ranger station and climbs steadily for three miles. Halfway up there is a waterfall where many hikers stop to rest. The final stretch is steep and exposed, so sturdy boots are recommended. From the summit you can see the entire valley and, on clear days, the distant coastline.",
+      "max_sentences": 3
+    }
+  }
+]

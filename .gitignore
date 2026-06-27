@@ -1,0 +1,6 @@
+node_modules/
+*.log
+projects/
+.conductor/
+# NOTE: dist/ is intentionally NOT ignored — the prebuilt MCP bundle ships with the
+# plugin so users need no build step.
