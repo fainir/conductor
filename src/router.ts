@@ -1,4 +1,4 @@
-// router.ts — pick a command for a goal, weighted by MEASURED reliability.
+// router.ts - pick a command for a goal, weighted by MEASURED reliability.
 //
 // Routing is the new bottleneck once the loop is reliable, so we constrain it:
 // the model picks from an enumerated list (not free text), and each candidate is
@@ -42,5 +42,6 @@ export async function route(
     },
     model: "haiku",
   });
-  return r.structured?.command ?? null;
+  const picked = r.structured?.command;
+  return typeof picked === "string" && enumNames.includes(picked) ? picked : null;
 }

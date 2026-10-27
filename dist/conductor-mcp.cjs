@@ -19576,12 +19576,54 @@ async function solve(opts, input) {
   return { ok: false, output: void 0, command: opts.command, attempts: attemptsMade, verdict: lastVerdict, costUsd: totalCost };
 }
 
+// package.json
+var package_default = {
+  name: "@fainir/conductor",
+  version: "0.4.0",
+  type: "module",
+  license: "MIT",
+  author: "fainir",
+  repository: { type: "git", url: "https://github.com/fainir/conductor.git" },
+  publishConfig: { access: "public" },
+  description: "A thin deterministic conductor that drives Claude Code as its engine. Reliability via contracts + mandatory verifiers + fallback-to-freeform.",
+  bin: {
+    "conductor-mcp": "dist/conductor-mcp.cjs"
+  },
+  files: [
+    "dist",
+    "src",
+    "commands",
+    "README.md"
+  ],
+  scripts: {
+    solve: "tsx src/cli.ts",
+    mcp: "tsx src/mcp.ts",
+    eval: "tsx eval/run-eval.ts",
+    typecheck: "tsc --noEmit",
+    test: "tsx --test test/*.test.ts",
+    build: 'esbuild src/mcp.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/conductor-mcp.cjs --banner:js="#!/usr/bin/env node"',
+    release: "node scripts/release.mjs",
+    scores: "tsx src/scores.ts",
+    prepublishOnly: "npm run build"
+  },
+  dependencies: {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    zod: "^3.23.8"
+  },
+  devDependencies: {
+    "@types/node": "^22.0.0",
+    esbuild: "^0.24.0",
+    tsx: "^4.22.4",
+    typescript: "^5.6.0"
+  }
+};
+
 // src/mcp.ts
 var registry2 = library();
 var HOME = process.env.CONDUCTOR_HOME ?? (0, import_node_path2.join)((0, import_node_os.homedir)(), ".conductor");
 (0, import_node_fs2.mkdirSync)(HOME, { recursive: true });
 var telemetryFile = (0, import_node_path2.join)(HOME, "telemetry.jsonl");
-var server = new Server({ name: "conductor", version: "0.1.0" }, { capabilities: { tools: {} } });
+var server = new Server({ name: "conductor", version: package_default.version }, { capabilities: { tools: {} } });
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [...registry2.values()].map((c) => ({
     name: c.manifest.name,
@@ -19595,13 +19637,18 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   if (!registry2.has(name)) {
     return { content: [{ type: "text", text: `Unknown conductor command: ${name}` }], isError: true };
   }
-  const res = await solve({ registry: registry2, command: name, goal: name, telemetryFile, cwd: (0, import_node_os.tmpdir)() }, args);
-  const payload = { ok: res.ok, output: res.output, via: res.command, attempts: res.attempts, verdict: res.verdict };
-  return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }], isError: !res.ok };
+  try {
+    const res = await solve({ registry: registry2, command: name, goal: name, telemetryFile, cwd: (0, import_node_os.tmpdir)() }, args);
+    const payload = { ok: res.ok, output: res.output, via: res.command, attempts: res.attempts, verdict: res.verdict };
+    return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }], isError: !res.ok };
+  } catch (e) {
+    console.error(`conductor: ${name} failed:`, e);
+    return { content: [{ type: "text", text: `conductor error: ${e?.message ?? String(e)}` }], isError: true };
+  }
 });
 async function main() {
   await server.connect(new StdioServerTransport());
-  console.error(`conductor MCP server up \u2014 ${registry2.size} verified commands`);
+  console.error(`conductor MCP server v${package_default.version} up - ${registry2.size} verified commands`);
 }
 main().catch((e) => {
   console.error("conductor MCP fatal:", e);

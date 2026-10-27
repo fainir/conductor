@@ -3,7 +3,7 @@
 // Run `npm run build` after changing src/ so the bundle matches.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, existsSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -70,4 +70,32 @@ test("tools/call: an unknown tool is an error result, not a crash", async () => 
   const res = await client.callTool({ name: "does_not_exist", arguments: {} });
   assert.equal(res.isError, true);
   assert.match((res.content as { text: string }[])[0].text, /Unknown conductor command: does_not_exist/);
+});
+
+test("initialize: the server reports the package version", () => {
+  const pkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+  assert.equal(client.getServerVersion()?.version, pkg.version);
+});
+
+test("tools/call: invalid arguments are an error result that says what is wrong", async () => {
+  const res = await client.callTool({ name: "truncate", arguments: { text: "hello" } });
+  assert.equal(res.isError, true);
+  assert.equal(payload(res).verdict.feedback, "invalid input: input: missing required property 'max'");
+  assert.equal(fake.calls().length, 0);
+});
+
+test("tools/call: an internal failure is an error result, not a protocol error", async () => {
+  const brokenHome = mkdtempSync(join(tmpdir(), "conductor-home-broken-"));
+  mkdirSync(join(brokenHome, "telemetry.jsonl")); // appending telemetry will fail with EISDIR
+  const c = new Client({ name: "conductor-test", version: "0.0.0" });
+  await c.connect(new StdioClientTransport({
+    command: process.execPath, args: [bundle], env: { PATH: process.env.PATH ?? "", CONDUCTOR_HOME: brokenHome }, stderr: "pipe",
+  }));
+  try {
+    const res = await c.callTool({ name: "slugify", arguments: { text: "x" } });
+    assert.equal(res.isError, true);
+    assert.match((res.content as { text: string }[])[0].text, /^conductor error: /);
+  } finally {
+    await c.close();
+  }
 });

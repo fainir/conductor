@@ -1,4 +1,4 @@
-// mcp.ts — exposes the conductor's verified commands to any MCP client
+// mcp.ts - exposes the conductor's verified commands to any MCP client
 // (Claude Code, Claude Desktop, etc.) as native tools.
 //
 // Each command becomes a tool whose input schema IS the command's contract
@@ -16,13 +16,14 @@ import { join } from "node:path";
 import { mkdirSync } from "node:fs";
 import { library } from "./library.js";
 import { solve } from "./solve.js";
+import pkg from "../package.json" with { type: "json" };
 
 const registry = library();
 const HOME = process.env.CONDUCTOR_HOME ?? join(homedir(), ".conductor");
 mkdirSync(HOME, { recursive: true });
 const telemetryFile = join(HOME, "telemetry.jsonl");
 
-const server = new Server({ name: "conductor", version: "0.1.0" }, { capabilities: { tools: {} } });
+const server = new Server({ name: "conductor", version: pkg.version }, { capabilities: { tools: {} } });
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [...registry.values()].map((c) => ({
@@ -38,14 +39,19 @@ server.setRequestHandler(CallToolRequestSchema, async (req) => {
   if (!registry.has(name)) {
     return { content: [{ type: "text", text: `Unknown conductor command: ${name}` }], isError: true };
   }
-  const res = await solve({ registry, command: name, goal: name, telemetryFile, cwd: tmpdir() }, args);
-  const payload = { ok: res.ok, output: res.output, via: res.command, attempts: res.attempts, verdict: res.verdict };
-  return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }], isError: !res.ok };
+  try {
+    const res = await solve({ registry, command: name, goal: name, telemetryFile, cwd: tmpdir() }, args);
+    const payload = { ok: res.ok, output: res.output, via: res.command, attempts: res.attempts, verdict: res.verdict };
+    return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }], isError: !res.ok };
+  } catch (e: any) {
+    console.error(`conductor: ${name} failed:`, e);
+    return { content: [{ type: "text", text: `conductor error: ${e?.message ?? String(e)}` }], isError: true };
+  }
 });
 
 async function main() {
   await server.connect(new StdioServerTransport());
-  console.error(`conductor MCP server up — ${registry.size} verified commands`);
+  console.error(`conductor MCP server v${pkg.version} up - ${registry.size} verified commands`);
 }
 
 main().catch((e) => {

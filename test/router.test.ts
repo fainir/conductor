@@ -77,3 +77,11 @@ test("route: a failed router call returns null", async () => {
   fake.queue({ envelope: { is_error: true, result: "down", total_cost_usd: 0 } });
   assert.equal(await route("x", library()), null);
 });
+
+// Bug: the router returned whatever name the model produced. Without native
+// structured output the enum is not enforced, and an unknown name made the
+// CLI crash in solve() with "Unknown command".
+test("route: a pick outside the enumerated commands is rejected", async () => {
+  fake.queue({ envelope: { is_error: false, result: '{"command":"delete_everything","reason":"x"}', total_cost_usd: 0 } });
+  assert.equal(await route("x", library()), null);
+});
