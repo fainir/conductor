@@ -4,8 +4,9 @@ import { check, combine } from "../../src/verify.js";
 
 function toSnake(text: string): string {
   return text
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2") // split camelCase boundaries
-    .replace(/[^a-zA-Z0-9]+/g, "_") // non-alphanumeric runs -> underscore
+    .replace(/([\p{Ll}\p{N}])(\p{Lu})/gu, "$1_$2") // split camelCase boundaries
+    .replace(/(\p{Lu}+)(\p{Lu}\p{Ll})/gu, "$1_$2") // split acronyms: XMLHttp -> XML_Http
+    .replace(/[^\p{L}\p{N}]+/gu, "_") // runs of anything but letters/digits -> underscore
     .replace(/^_+|_+$/g, "") // trim
     .toLowerCase();
 }

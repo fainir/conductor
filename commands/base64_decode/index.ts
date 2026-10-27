@@ -18,7 +18,7 @@ export async function run(input: { encoded: string }): Promise<{ text: string }>
 }
 
 export async function verify(output: { text: string }, input: { encoded: string }, _ctx: SolveContext): Promise<Verdict> {
-  const norm = (s: string) => s.replace(/=+$/, "");
+  const norm = (s: string) => s.replace(/\s+/g, "").replace(/=+$/, ""); // line breaks and padding are not content
   const reencoded = Buffer.from(output?.text ?? "", "utf8").toString("base64");
   return combine(
     check("string", typeof output?.text === "string", "text must be a string"),

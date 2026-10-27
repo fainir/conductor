@@ -18,8 +18,12 @@ export const manifest: CommandManifest = {
   effectful: false,
 };
 
+// Address characters exclude whitespace, "@", brackets, quotes and list punctuation, so
+// "<a@b.io>," or "mailto:a@b.io" yield "a@b.io". A sentence-ending "." is trimmed.
+const EMAIL_SCAN = /[^\s@<>()[\]{},;:"'`]+@[^\s@<>()[\]{},;:"'`]+\.[^\s@<>()[\]{},;:"'`]+/g;
+
 export async function run(input: { text: string }): Promise<{ emails: string[] }> {
-  const matches = input.text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/g) ?? [];
+  const matches = (input.text.match(EMAIL_SCAN) ?? []).map((m) => m.replace(/\.+$/, "")).filter((m) => EMAIL_RE.test(m));
   return { emails: [...new Set(matches)] };
 }
 

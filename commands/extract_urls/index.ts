@@ -8,9 +8,11 @@ import { check, combine } from "../../src/verify.js";
 
 const URL_FIND = /https?:\/\/[^\s)>\]]+/g;
 const URL_SHAPE = /^https?:\/\/[^\s]+$/;
+// Sentence punctuation and closing quotes after a URL belong to the prose, not the URL.
+const TRAILING = /[.,;:!?'"]+$/;
 
 function extract(text: string): string[] {
-  const matches = text.match(URL_FIND) ?? [];
+  const matches = (text.match(URL_FIND) ?? []).map((m) => m.replace(TRAILING, "")).filter((m) => URL_SHAPE.test(m));
   const seen = new Set<string>();
   const out: string[] = [];
   for (const m of matches) {

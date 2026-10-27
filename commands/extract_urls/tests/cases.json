@@ -14,5 +14,9 @@
   {
     "input": { "text": "wrap (https://example.com/path) then <http://t.io> and [https://q.net]" },
     "expect": { "urls": ["https://example.com/path", "http://t.io", "https://q.net"] }
+  },
+  {
+    "input": { "text": "Docs: https://example.com/guide. Repo: \"https://example.com/repo\"!" },
+    "expect": { "urls": ["https://example.com/guide", "https://example.com/repo"] }
   }
 ]

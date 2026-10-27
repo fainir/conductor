@@ -1,8 +1,8 @@
-// categorize — a STOCHASTIC command (model-driven) with a MECHANICAL verifier.
+// categorize - a STOCHASTIC command (model-driven) with a MECHANICAL verifier.
 // The model reads ONLY the provided text and a list of allowed categories, then
 // returns the single best-fitting category copied verbatim. The verifier is cheap
 // and deterministic: it asserts the returned category is a string AND is one of the
-// allowed categories. Membership is the key grounding check — it catches a model
+// allowed categories. Membership is the key grounding check - it catches a model
 // that invents a label or paraphrases instead of choosing from the provided set.
 
 import { z } from "zod";
@@ -29,7 +29,7 @@ export const manifest: CommandManifest = {
     type: "object",
     properties: {
       text: { type: "string" },
-      categories: { type: "array", items: { type: "string" } },
+      categories: { type: "array", items: { type: "string" }, minItems: 1 },
     },
     required: ["text", "categories"],
     additionalProperties: false,

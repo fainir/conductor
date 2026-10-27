@@ -22,7 +22,7 @@ export const manifest: CommandManifest = {
     type: "object",
     properties: {
       text: { type: "string" },
-      max: { type: "number" },
+      max: { type: "number", minimum: 0 },
     },
     required: ["text", "max"],
     additionalProperties: false,

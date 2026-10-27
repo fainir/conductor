@@ -1,4 +1,4 @@
-// slugify — a PURE command (deterministic body, no model, cacheable).
+// slugify - a PURE command (deterministic body, no model, cacheable).
 // Shows the other end of the gradient: no LLM, so it's 100% reliable and free.
 // Its verifier is a trivial mechanical check.
 
@@ -30,8 +30,8 @@ export async function run(input: { text: string }): Promise<{ slug: string }> {
   const slug = input.text
     .toLowerCase()
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "") // strip diacritics
-    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[\u0300-\u036f]/g, "") // strip diacritics
+    .replace(/[^a-z0-9\s_-]/g, "")
     .trim()
     .replace(/[\s_]+/g, "-")
     .replace(/-+/g, "-")

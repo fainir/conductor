@@ -1,13 +1,13 @@
-// verify.ts — helpers for building verifiers.
+// verify.ts - helpers for building verifiers.
 // Mechanical checks first (deterministic, free, trustworthy); LLM-judge only for
-// genuinely semantic criteria. Checking is easier than doing — lean on it.
+// genuinely semantic criteria. Checking is easier than doing - lean on it.
 
 import type { ZodType } from "zod";
 import type { Verdict } from "./types.js";
 import { callClaude } from "./cc.js";
 
 export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-export const PHONE_RE = /^[+]?[\d][\d\s().\-]{6,}$/;
+export const PHONE_RE = /^[+]?\(?\d[\d\s().\-]{6,}$/;
 
 // Non-anchored detectors: "does a PII-looking token appear ANYWHERE in the text?"
 // Useful for redaction verifiers (no email/phone should remain) and grounding.

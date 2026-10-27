@@ -1,7 +1,8 @@
 // template_fill - a PURE command. Replaces every {{key}} token in the template
 // with String(data[key]) when key is present in data, otherwise leaves the {{key}}
 // token unchanged. The verifier RECOMPUTES the fill from the input and asserts that
-// no unresolved {{placeholder}} remains.
+// no unresolved {{placeholder}} remains, so a template with a key missing from data
+// fails and names the missing keys.
 
 import type { CommandManifest, SolveContext, Verdict } from "../../src/types.js";
 import { check, combine } from "../../src/verify.js";
@@ -17,7 +18,7 @@ function fill(template: string, data: Record<string, unknown>): string {
 
 export const manifest: CommandManifest = {
   name: "template_fill",
-  description: "Fill a template by replacing every {{key}} token with String(data[key]); unknown keys keep their {{key}} token.",
+  description: "Fill a template by replacing every {{key}} token with String(data[key]); fails, naming the keys, if any {{key}} has no value in data.",
   determinism: "pure",
   trust: "human-verified",
   inputSchema: {
@@ -52,6 +53,7 @@ export async function verify(
 ): Promise<Verdict> {
   const out = output as { result: string };
   const expected = fill(input.template, input.data);
+  const missing = [...new Set([...(typeof out.result === "string" ? out.result : "").matchAll(TOKEN)].map((m) => m[1]))];
   return combine(
     check("string", typeof out.result === "string", "result must be a string"),
     check(
@@ -62,7 +64,7 @@ export async function verify(
     check(
       "no-unresolved",
       typeof out.result === "string" && UNRESOLVED.test(out.result) === false,
-      "an unfilled {{placeholder}} remains in result - every {{key}} token must be resolved",
+      `an unfilled {{placeholder}} remains in result - no value in data for: ${missing.join(", ")}`,
     ),
   );
 }

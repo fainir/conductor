@@ -18119,7 +18119,7 @@ function tryParseJson(s) {
 
 // src/verify.ts
 var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-var PHONE_RE = /^[+]?[\d][\d\s().\-]{6,}$/;
+var PHONE_RE = /^[+]?\(?\d[\d\s().\-]{6,}$/;
 var EMAIL_FIND = /[^\s@]+@[^\s@]+\.[^\s@]+/;
 var PHONE_FIND = /\+?\d[\d\s().\-]{6,}\d/;
 function check2(name, predicate, feedback) {
@@ -18158,7 +18158,7 @@ var manifest = {
   effectful: false
 };
 async function run(input) {
-  const slug = input.text.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9\s-]/g, "").trim().replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  const slug = input.text.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9\s_-]/g, "").trim().replace(/[\s_]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   return { slug };
 }
 async function verify(output, _input, _ctx) {
@@ -18664,7 +18664,7 @@ var manifest10 = {
     type: "object",
     properties: {
       text: { type: "string" },
-      max: { type: "number" }
+      max: { type: "number", minimum: 0 }
     },
     required: ["text", "max"],
     additionalProperties: false
@@ -18780,8 +18780,9 @@ __export(extract_urls_exports, {
 });
 var URL_FIND = /https?:\/\/[^\s)>\]]+/g;
 var URL_SHAPE = /^https?:\/\/[^\s]+$/;
+var TRAILING = /[.,;:!?'"]+$/;
 function extract(text) {
-  const matches = text.match(URL_FIND) ?? [];
+  const matches = (text.match(URL_FIND) ?? []).map((m) => m.replace(TRAILING, "")).filter((m) => URL_SHAPE.test(m));
   const seen = /* @__PURE__ */ new Set();
   const out = [];
   for (const m of matches) {
@@ -18863,7 +18864,7 @@ function fill(template, data) {
 }
 var manifest13 = {
   name: "template_fill",
-  description: "Fill a template by replacing every {{key}} token with String(data[key]); unknown keys keep their {{key}} token.",
+  description: "Fill a template by replacing every {{key}} token with String(data[key]); fails, naming the keys, if any {{key}} has no value in data.",
   determinism: "pure",
   trust: "human-verified",
   inputSchema: {
@@ -18892,6 +18893,7 @@ async function run7(input) {
 async function verify13(output, input, _ctx) {
   const out = output;
   const expected = fill(input.template, input.data);
+  const missing = [...new Set([...(typeof out.result === "string" ? out.result : "").matchAll(TOKEN)].map((m) => m[1]))];
   return combine(
     check2("string", typeof out.result === "string", "result must be a string"),
     check2(
@@ -18902,7 +18904,7 @@ async function verify13(output, input, _ctx) {
     check2(
       "no-unresolved",
       typeof out.result === "string" && UNRESOLVED.test(out.result) === false,
-      "an unfilled {{placeholder}} remains in result - every {{key}} token must be resolved"
+      `an unfilled {{placeholder}} remains in result - no value in data for: ${missing.join(", ")}`
     )
   );
 }
@@ -19036,7 +19038,7 @@ var manifest16 = {
     type: "object",
     properties: {
       text: { type: "string" },
-      categories: { type: "array", items: { type: "string" } }
+      categories: { type: "array", items: { type: "string" }, minItems: 1 }
     },
     required: ["text", "categories"],
     additionalProperties: false
@@ -19185,7 +19187,7 @@ async function run9(input) {
   return { text: Buffer.from(input.encoded, "base64").toString("utf8") };
 }
 async function verify19(output, input, _ctx) {
-  const norm = (s) => s.replace(/=+$/, "");
+  const norm = (s) => s.replace(/\s+/g, "").replace(/=+$/, "");
   const reencoded = Buffer.from(output?.text ?? "", "utf8").toString("base64");
   return combine(
     check2("string", typeof output?.text === "string", "text must be a string"),
@@ -19215,8 +19217,9 @@ var manifest20 = {
   fallbacks: [],
   effectful: false
 };
+var EMAIL_SCAN = /[^\s@<>()[\]{},;:"'`]+@[^\s@<>()[\]{},;:"'`]+\.[^\s@<>()[\]{},;:"'`]+/g;
 async function run10(input) {
-  const matches = input.text.match(/[^\s@]+@[^\s@]+\.[^\s@]+/g) ?? [];
+  const matches = (input.text.match(EMAIL_SCAN) ?? []).map((m) => m.replace(/\.+$/, "")).filter((m) => EMAIL_RE.test(m));
   return { emails: [...new Set(matches)] };
 }
 async function verify20(output, input, _ctx) {
@@ -19274,7 +19277,7 @@ __export(to_snake_case_exports, {
   verify: () => verify22
 });
 function toSnake(text) {
-  return text.replace(/([a-z0-9])([A-Z])/g, "$1_$2").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase();
+  return text.replace(new RegExp("([\\p{Ll}\\p{N}])(\\p{Lu})", "gu"), "$1_$2").replace(new RegExp("(\\p{Lu}+)(\\p{Lu}\\p{Ll})", "gu"), "$1_$2").replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, "").toLowerCase();
 }
 var manifest22 = {
   name: "to_snake_case",

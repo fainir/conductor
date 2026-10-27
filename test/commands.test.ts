@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { library } from "../src/library.js";
 import { loadCommands } from "../src/registry.js";
 import type { CommandModule, SolveContext, Verdict } from "../src/types.js";
+import { validate } from "../src/schema.js";
 
 const root = resolve(import.meta.dirname, "..");
 const commandsDir = resolve(root, "commands");
@@ -226,3 +227,64 @@ for (const s of STOCHASTIC) {
     }
   });
 }
+
+// ---- regressions -----------------------------------------------------------------------
+
+test("extract_emails: surrounding punctuation and brackets are not part of the address", async () => {
+  const input = { text: "Email sam@acme.io. Or <ops@acme.io>, (dev@acme.io); mailto:x@y.co and 'q@r.dev'" };
+  const out = await run("extract_emails", input);
+  assert.deepEqual(out, { emails: ["sam@acme.io", "ops@acme.io", "dev@acme.io", "x@y.co", "q@r.dev"] });
+  assert.equal((await verify("extract_emails", out, input)).ok, true);
+});
+
+test("extract_urls: trailing sentence punctuation and quotes are not part of the URL", async () => {
+  const input = { text: 'See https://a.com/x. Also https://b.org/y?q=1, and "https://c.net"! Not https://. though' };
+  const out = await run("extract_urls", input);
+  assert.deepEqual(out, { urls: ["https://a.com/x", "https://b.org/y?q=1", "https://c.net"] });
+  assert.equal((await verify("extract_urls", out, input)).ok, true);
+});
+
+test("slugify: underscores become hyphens (they were silently dropped)", async () => {
+  assert.deepEqual(await run("slugify", { text: "snake_case_name" }), { slug: "snake-case-name" });
+  assert.deepEqual(await run("slugify", { text: "__init__ file" }), { slug: "init-file" });
+});
+
+test("to_snake_case: acronyms are split and non-ASCII letters are kept", async () => {
+  const cases: [string, string][] = [
+    ["XMLHttpRequest", "xml_http_request"],
+    ["HTTPServer", "http_server"],
+    ["userID", "user_id"],
+    ["Café Olé", "café_olé"],
+    ["already_snake", "already_snake"],
+  ];
+  for (const [text, snake] of cases) {
+    const out = await run("to_snake_case", { text });
+    assert.deepEqual(out, { snake }, text);
+    assert.equal((await verify("to_snake_case", out, { text })).ok, true);
+  }
+});
+
+test("base64_decode: line-wrapped base64 (as in MIME) verifies", async () => {
+  const input = { encoded: "SGVsbG8s\nIFdvcmxk\r\nIQ==" };
+  const out = await run("base64_decode", input);
+  assert.deepEqual(out, { text: "Hello, World!" });
+  assert.equal((await verify("base64_decode", out, input)).ok, true);
+});
+
+test("template_fill: the failure names the placeholders that have no data", async () => {
+  const input = { template: "Hi {{name}}, order {{id}} ships {{when}}", data: { name: "Sam" } };
+  const v = await verify("template_fill", await run("template_fill", input), input);
+  assert.equal(v.ok, false);
+  assert.match(v.feedback ?? "", /no value in data for: id, when/);
+});
+
+test("extract_contact: a phone written as (415) 555-0132 is a valid phone", async () => {
+  const input = { text: "Dr. Chen Wei - (415) 555-0132" };
+  const v = await verify("extract_contact", { name: "Chen Wei", email: null, phone: "(415) 555-0132" }, input);
+  assert.equal(v.ok, true, v.feedback);
+});
+
+test("inputSchema bounds: truncate needs max >= 0, categorize needs at least one category", () => {
+  assert.notDeepEqual(validate(cmd("truncate").manifest.inputSchema, { text: "abc", max: -1 }), []);
+  assert.notDeepEqual(validate(cmd("categorize").manifest.inputSchema, { text: "abc", categories: [] }), []);
+});

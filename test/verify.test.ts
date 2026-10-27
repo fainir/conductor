@@ -35,6 +35,7 @@ test("EMAIL_RE / PHONE_RE accept well-formed values and reject junk", () => {
   assert.ok(!EMAIL_RE.test("sam at acme.io"));
   assert.ok(!EMAIL_RE.test("sam@acme"));
   assert.ok(PHONE_RE.test("+972 50 123 4567"));
+  assert.ok(PHONE_RE.test("(415) 555-0132"));
   assert.ok(!PHONE_RE.test("call me"));
   assert.ok(!PHONE_RE.test("12345"));
 });
