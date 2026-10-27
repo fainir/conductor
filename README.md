@@ -32,7 +32,7 @@ Check that the server is up:
 
 ```console
 $ claude mcp list
-plugin:conductor:conductor: node /Users/you/.claude/plugins/cache/conductor/conductor/0.4.0/dist/conductor-mcp.cjs - ✓ Connected
+plugin:conductor:conductor: node /Users/you/.claude/plugins/cache/conductor/conductor/0.4.1/dist/conductor-mcp.cjs - ✓ Connected
 ```
 
 Then ask for the job in plain words, for example "redact the PII in this ticket with conductor".
