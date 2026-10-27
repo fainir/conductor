@@ -19580,12 +19580,35 @@ async function solve(opts, input) {
 var package_default = {
   name: "@fainir/conductor",
   version: "0.4.0",
+  description: "Verified, deterministic tool calls for Claude Code: an MCP server (and Claude Code plugin) whose tools run through verify + retry + fallback over hermetic claude calls.",
+  keywords: [
+    "claude-code",
+    "claude",
+    "mcp",
+    "mcp-server",
+    "claude-code-plugin",
+    "verification",
+    "reliability",
+    "llm",
+    "tools"
+  ],
   type: "module",
   license: "MIT",
   author: "fainir",
-  repository: { type: "git", url: "https://github.com/fainir/conductor.git" },
-  publishConfig: { access: "public" },
-  description: "A thin deterministic conductor that drives Claude Code as its engine. Reliability via contracts + mandatory verifiers + fallback-to-freeform.",
+  homepage: "https://github.com/fainir/conductor#readme",
+  repository: {
+    type: "git",
+    url: "https://github.com/fainir/conductor.git"
+  },
+  bugs: {
+    url: "https://github.com/fainir/conductor/issues"
+  },
+  publishConfig: {
+    access: "public"
+  },
+  engines: {
+    node: ">=20.11"
+  },
   bin: {
     "conductor-mcp": "dist/conductor-mcp.cjs"
   },
@@ -19593,7 +19616,8 @@ var package_default = {
     "dist",
     "src",
     "commands",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   scripts: {
     solve: "tsx src/cli.ts",

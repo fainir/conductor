@@ -1,6 +1,9 @@
 node_modules/
 *.log
+*.tgz
+.DS_Store
+# local telemetry written by the CLI, evals and MCP server
 projects/
 .conductor/
-# NOTE: dist/ is intentionally NOT ignored — the prebuilt MCP bundle ships with the
+# NOTE: dist/ is intentionally NOT ignored - the prebuilt MCP bundle ships with the
 # plugin so users need no build step.
