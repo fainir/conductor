@@ -1,18 +1,21 @@
-// solve.ts — the single-level reliable loop.
+// solve.ts - the single-level reliable loop.
 //
-//   route -> [precondition] -> execute -> VERIFY -> retry-with-feedback
-//                                                 -> next fallback rung
-//                                                 -> freeform (always terminates)
+//   route -> precondition (inputSchema) -> execute -> VERIFY -> retry-with-feedback
+//                                                            -> next fallback rung
+//                                                            -> freeform (always terminates)
 //
 // Every node is verified. Every attempt is logged. The ladder guarantees the
 // conductor never returns unverified output silently, and never does worse than
-// raw Claude (the bottom rung).
+// raw Claude (the bottom rung). Pure commands are the exception: they are
+// deterministic code, so they are neither retried nor handed to the model - a
+// pure output that fails its verifier fails with the verifier's reason.
 
 import { createHash } from "node:crypto";
 import type { CommandModule, SolveContext, SolveResult, Verdict } from "./types.js";
 import { callClaude } from "./cc.js";
 import { freeform } from "./freeform.js";
 import { logEntry } from "./telemetry.js";
+import { validate } from "./schema.js";
 
 const pureCache = new Map<string, unknown>();
 const hash = (x: unknown) => createHash("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 16);
@@ -27,7 +30,7 @@ export interface SolveOptions {
 }
 
 /** Run a command body: deterministic run() (with cache for pure), else drive the model. */
-async function execute(cmd: CommandModule, input: any, ctx: SolveContext): Promise<{ output: any; costUsd: number }> {
+async function execute(cmd: CommandModule, input: any, ctx: SolveContext): Promise<{ output: any; costUsd: number; error?: string }> {
   const m = cmd.manifest;
 
   if (cmd.run) {
@@ -48,14 +51,25 @@ async function execute(cmd: CommandModule, input: any, ctx: SolveContext): Promi
   const r = await callClaude({
     systemPrompt:
       m.systemPrompt ??
-      "You are a deterministic function. Use ONLY the provided input — no ambient or outside knowledge. Return JSON matching the schema.",
+      "You are a deterministic function. Use ONLY the provided input - no ambient or outside knowledge. Return JSON matching the schema.",
     prompt,
     jsonSchema: m.outputSchema,
     model: m.model ?? "sonnet",
     cwd: ctx.projectDir,
   });
-  return { output: r.structured, costUsd: r.costUsd };
+  return { output: r.structured, costUsd: r.costUsd, error: r.error };
 }
+
+/** Run a verifier; a verifier that throws is a failed verdict, never a crash. */
+async function safeVerify(cmd: CommandModule, output: unknown, input: unknown, ctx: SolveContext): Promise<Verdict> {
+  try {
+    return await cmd.verify(output, input, ctx);
+  } catch (e: any) {
+    return { ok: false, score: 0, feedback: "verifier threw: " + (e?.message ?? String(e)) };
+  }
+}
+
+const noOutput = (what: string, error?: string) => `${what}${error ? ` (${error})` : ""}`;
 
 export async function solve(opts: SolveOptions, input: any): Promise<SolveResult> {
   const reg = opts.registry;
@@ -63,11 +77,21 @@ export async function solve(opts: SolveOptions, input: any): Promise<SolveResult
   if (!primary) throw new Error(`Unknown command: ${opts.command}`);
   const goal = opts.goal ?? opts.command;
 
+  // precondition gate: the input must satisfy the command's contract before anything runs
+  const problems = validate(primary.manifest.inputSchema, input);
+  if (problems.length > 0) {
+    const verdict: Verdict = { ok: false, score: 0, feedback: "invalid input: " + problems.join("; ") };
+    return { ok: false, output: undefined, command: opts.command, attempts: 0, verdict, costUsd: 0 };
+  }
+
   // ladder: primary, then its declared command fallbacks, then universal freeform
+  // (pure commands keep exactly the fallbacks they declare)
   const ladder = [opts.command, ...primary.manifest.fallbacks];
-  if (!ladder.includes("freeform")) ladder.push("freeform");
+  if (primary.manifest.determinism !== "pure" && !ladder.includes("freeform")) ladder.push("freeform");
 
   let totalCost = 0;
+  let attemptsMade = 0;
+  let lastVerdict: Verdict = { ok: false, feedback: "all rungs exhausted" };
 
   for (let rung = 0; rung < ladder.length; rung++) {
     const name = ladder[rung];
@@ -81,8 +105,8 @@ export async function solve(opts: SolveOptions, input: any): Promise<SolveResult
       const ctx: SolveContext = { goal, depth: 0, projectDir: opts.cwd, trace: [] };
       const verdict: Verdict =
         r.structured !== undefined
-          ? await primary.verify(r.structured, input, ctx) // the contract still applies to freeform output
-          : { ok: false, feedback: "freeform produced no structured output" };
+          ? await safeVerify(primary, r.structured, input, ctx) // the contract still applies to freeform output
+          : { ok: false, feedback: noOutput("freeform produced no structured output", r.error) };
       if (opts.telemetryFile)
         logEntry(opts.telemetryFile, {
           ts: new Date().toISOString(), command: "freeform", ok: verdict.ok, attempts: 1,
@@ -95,10 +119,8 @@ export async function solve(opts: SolveOptions, input: any): Promise<SolveResult
     const cmd = reg.get(name);
     if (!cmd) continue;
 
-    // precondition gate
-    // (kept light in the MVP — full schema gating lands with the contract layer)
-
-    const maxAttempts = cmd.manifest.maxAttempts ?? 2;
+    // a pure command is deterministic: a retry would return the identical output
+    const maxAttempts = cmd.manifest.determinism === "pure" ? 1 : (cmd.manifest.maxAttempts ?? 2);
     let feedback: string | undefined;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -107,12 +129,13 @@ export async function solve(opts: SolveOptions, input: any): Promise<SolveResult
       let output: any;
       let costUsd = 0;
       let verdict: Verdict;
+      attemptsMade++;
       try {
         const ex = await execute(cmd, input, ctx);
         output = ex.output;
         costUsd = ex.costUsd;
         totalCost += costUsd;
-        verdict = output === undefined ? { ok: false, feedback: "no output produced" } : await cmd.verify(output, input, ctx);
+        verdict = output === undefined ? { ok: false, feedback: noOutput("no output produced", ex.error) } : await safeVerify(cmd, output, input, ctx);
       } catch (e: any) {
         verdict = { ok: false, feedback: "command threw: " + (e?.message ?? String(e)) };
       }
@@ -125,9 +148,10 @@ export async function solve(opts: SolveOptions, input: any): Promise<SolveResult
 
       if (verdict.ok) return { ok: true, output, command: name, attempts: attempt, fellBackTo: fellBack, verdict, costUsd: totalCost };
       feedback = verdict.feedback; // retry with the verifier's feedback
+      lastVerdict = verdict;
     }
     // attempts exhausted -> drop to next rung
   }
 
-  return { ok: false, output: undefined, command: opts.command, attempts: 0, verdict: { ok: false, feedback: "all rungs exhausted" }, costUsd: totalCost };
+  return { ok: false, output: undefined, command: opts.command, attempts: attemptsMade, verdict: lastVerdict, costUsd: totalCost };
 }

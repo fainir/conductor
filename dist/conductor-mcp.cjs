@@ -1867,8 +1867,8 @@ var require_keyword = __commonJS({
       var _a;
       const { gen, keyword, schema, parentSchema, $data, it } = cxt;
       checkAsyncKeyword(it, def);
-      const validate = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
-      const validateRef = useKeyword(gen, keyword, validate);
+      const validate2 = !$data && def.compile ? def.compile.call(it.self, schema, parentSchema, it) : def.validate;
+      const validateRef = useKeyword(gen, keyword, validate2);
       const valid = gen.let("valid");
       cxt.block$data(valid, validateKeyword);
       cxt.ok((_a = def.valid) !== null && _a !== void 0 ? _a : valid);
@@ -2941,28 +2941,28 @@ var require_compile = __commonJS({
         if (this.opts.code.process)
           sourceCode = this.opts.code.process(sourceCode, sch);
         const makeValidate = new Function(`${names_1.default.self}`, `${names_1.default.scope}`, sourceCode);
-        const validate = makeValidate(this, this.scope.get());
-        this.scope.value(validateName, { ref: validate });
-        validate.errors = null;
-        validate.schema = sch.schema;
-        validate.schemaEnv = sch;
+        const validate2 = makeValidate(this, this.scope.get());
+        this.scope.value(validateName, { ref: validate2 });
+        validate2.errors = null;
+        validate2.schema = sch.schema;
+        validate2.schemaEnv = sch;
         if (sch.$async)
-          validate.$async = true;
+          validate2.$async = true;
         if (this.opts.code.source === true) {
-          validate.source = { validateName, validateCode, scopeValues: gen._values };
+          validate2.source = { validateName, validateCode, scopeValues: gen._values };
         }
         if (this.opts.unevaluated) {
           const { props, items } = schemaCxt;
-          validate.evaluated = {
+          validate2.evaluated = {
             props: props instanceof codegen_1.Name ? void 0 : props,
             items: items instanceof codegen_1.Name ? void 0 : items,
             dynamicProps: props instanceof codegen_1.Name,
             dynamicItems: items instanceof codegen_1.Name
           };
-          if (validate.source)
-            validate.source.evaluated = (0, codegen_1.stringify)(validate.evaluated);
+          if (validate2.source)
+            validate2.source.evaluated = (0, codegen_1.stringify)(validate2.evaluated);
         }
-        sch.validate = validate;
+        sch.validate = validate2;
         return sch;
       } catch (e) {
         delete sch.validate;
@@ -6575,8 +6575,8 @@ var require_formats = __commonJS({
     "use strict";
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.formatNames = exports2.fastFormats = exports2.fullFormats = void 0;
-    function fmtDef(validate, compare) {
-      return { validate, compare };
+    function fmtDef(validate2, compare) {
+      return { validate: validate2, compare };
     }
     exports2.fullFormats = {
       // date: http://tools.ietf.org/html/rfc3339#section-5.6
@@ -19393,6 +19393,68 @@ function logEntry(file, entry) {
   (0, import_node_fs.appendFileSync)(file, JSON.stringify(entry) + "\n");
 }
 
+// src/schema.ts
+function typeOf(v) {
+  if (v === null) return "null";
+  if (Array.isArray(v)) return "array";
+  return typeof v;
+}
+function hasType(v, t) {
+  switch (t) {
+    case "object":
+      return typeOf(v) === "object";
+    case "array":
+      return Array.isArray(v);
+    case "null":
+      return v === null;
+    case "integer":
+      return Number.isInteger(v);
+    case "number":
+      return typeof v === "number" && Number.isFinite(v);
+    default:
+      return typeof v === t;
+  }
+}
+function validate(schema, value, path = "input") {
+  const s = schema;
+  const errors = [];
+  if (s.type !== void 0) {
+    const types = Array.isArray(s.type) ? s.type : [s.type];
+    if (!types.some((t) => hasType(value, t))) {
+      return [`${path}: expected ${types.join(" or ")}, got ${typeOf(value)}`];
+    }
+  }
+  if (Array.isArray(s.enum) && !s.enum.some((e) => JSON.stringify(e) === JSON.stringify(value))) {
+    errors.push(`${path}: must be one of ${s.enum.map((e) => JSON.stringify(e)).join(", ")}`);
+  }
+  if (typeof s.minimum === "number" && typeof value === "number" && value < s.minimum) {
+    errors.push(`${path}: must be >= ${s.minimum}, got ${value}`);
+  }
+  if (Array.isArray(value)) {
+    if (typeof s.minItems === "number" && value.length < s.minItems) {
+      errors.push(`${path}: must have at least ${s.minItems} item(s), got ${value.length}`);
+    }
+    if (s.items && typeof s.items === "object") {
+      value.forEach((item, i) => errors.push(...validate(s.items, item, `${path}[${i}]`)));
+    }
+  }
+  if (typeOf(value) === "object") {
+    const obj = value;
+    const props = s.properties ?? {};
+    for (const key of s.required ?? []) {
+      if (!Object.prototype.hasOwnProperty.call(obj, key)) errors.push(`${path}: missing required property '${key}'`);
+    }
+    for (const [key, v] of Object.entries(obj)) {
+      if (Object.prototype.hasOwnProperty.call(props, key)) errors.push(...validate(props[key], v, `${path}.${key}`));
+      else if (s.additionalProperties === false) {
+        const allowed = Object.keys(props);
+        errors.push(`${path}: unexpected property '${key}'${allowed.length ? ` (allowed: ${allowed.join(", ")})` : ""}`);
+      }
+    }
+  }
+  return errors;
+}
+
 // src/solve.ts
 var pureCache = /* @__PURE__ */ new Map();
 var hash = (x) => (0, import_node_crypto.createHash)("sha256").update(JSON.stringify(x)).digest("hex").slice(0, 16);
@@ -19417,22 +19479,37 @@ YOUR PREVIOUS ANSWER FAILED VERIFICATION:
 ${ctx.feedback}
 Return a corrected answer.` : "");
   const r = await callClaude({
-    systemPrompt: m.systemPrompt ?? "You are a deterministic function. Use ONLY the provided input \u2014 no ambient or outside knowledge. Return JSON matching the schema.",
+    systemPrompt: m.systemPrompt ?? "You are a deterministic function. Use ONLY the provided input - no ambient or outside knowledge. Return JSON matching the schema.",
     prompt,
     jsonSchema: m.outputSchema,
     model: m.model ?? "sonnet",
     cwd: ctx.projectDir
   });
-  return { output: r.structured, costUsd: r.costUsd };
+  return { output: r.structured, costUsd: r.costUsd, error: r.error };
 }
+async function safeVerify(cmd, output, input, ctx) {
+  try {
+    return await cmd.verify(output, input, ctx);
+  } catch (e) {
+    return { ok: false, score: 0, feedback: "verifier threw: " + (e?.message ?? String(e)) };
+  }
+}
+var noOutput = (what, error2) => `${what}${error2 ? ` (${error2})` : ""}`;
 async function solve(opts, input) {
   const reg = opts.registry;
   const primary = reg.get(opts.command);
   if (!primary) throw new Error(`Unknown command: ${opts.command}`);
   const goal = opts.goal ?? opts.command;
+  const problems = validate(primary.manifest.inputSchema, input);
+  if (problems.length > 0) {
+    const verdict = { ok: false, score: 0, feedback: "invalid input: " + problems.join("; ") };
+    return { ok: false, output: void 0, command: opts.command, attempts: 0, verdict, costUsd: 0 };
+  }
   const ladder = [opts.command, ...primary.manifest.fallbacks];
-  if (!ladder.includes("freeform")) ladder.push("freeform");
+  if (primary.manifest.determinism !== "pure" && !ladder.includes("freeform")) ladder.push("freeform");
   let totalCost = 0;
+  let attemptsMade = 0;
+  let lastVerdict = { ok: false, feedback: "all rungs exhausted" };
   for (let rung = 0; rung < ladder.length; rung++) {
     const name = ladder[rung];
     const fellBack = rung > 0 ? opts.command : void 0;
@@ -19441,7 +19518,7 @@ async function solve(opts, input) {
       const r = await freeform(goal, input, primary.manifest.outputSchema, { cwd: opts.cwd });
       totalCost += r.costUsd;
       const ctx = { goal, depth: 0, projectDir: opts.cwd, trace: [] };
-      const verdict = r.structured !== void 0 ? await primary.verify(r.structured, input, ctx) : { ok: false, feedback: "freeform produced no structured output" };
+      const verdict = r.structured !== void 0 ? await safeVerify(primary, r.structured, input, ctx) : { ok: false, feedback: noOutput("freeform produced no structured output", r.error) };
       if (opts.telemetryFile)
         logEntry(opts.telemetryFile, {
           ts: (/* @__PURE__ */ new Date()).toISOString(),
@@ -19458,7 +19535,7 @@ async function solve(opts, input) {
     }
     const cmd = reg.get(name);
     if (!cmd) continue;
-    const maxAttempts = cmd.manifest.maxAttempts ?? 2;
+    const maxAttempts = cmd.manifest.determinism === "pure" ? 1 : cmd.manifest.maxAttempts ?? 2;
     let feedback;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       const t0 = Date.now();
@@ -19466,12 +19543,13 @@ async function solve(opts, input) {
       let output;
       let costUsd = 0;
       let verdict;
+      attemptsMade++;
       try {
         const ex = await execute(cmd, input, ctx);
         output = ex.output;
         costUsd = ex.costUsd;
         totalCost += costUsd;
-        verdict = output === void 0 ? { ok: false, feedback: "no output produced" } : await cmd.verify(output, input, ctx);
+        verdict = output === void 0 ? { ok: false, feedback: noOutput("no output produced", ex.error) } : await safeVerify(cmd, output, input, ctx);
       } catch (e) {
         verdict = { ok: false, feedback: "command threw: " + (e?.message ?? String(e)) };
       }
@@ -19489,9 +19567,10 @@ async function solve(opts, input) {
         });
       if (verdict.ok) return { ok: true, output, command: name, attempts: attempt, fellBackTo: fellBack, verdict, costUsd: totalCost };
       feedback = verdict.feedback;
+      lastVerdict = verdict;
     }
   }
-  return { ok: false, output: void 0, command: opts.command, attempts: 0, verdict: { ok: false, feedback: "all rungs exhausted" }, costUsd: totalCost };
+  return { ok: false, output: void 0, command: opts.command, attempts: attemptsMade, verdict: lastVerdict, costUsd: totalCost };
 }
 
 // src/mcp.ts

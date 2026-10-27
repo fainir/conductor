@@ -14,20 +14,20 @@ export interface CommandManifest {
   /** pure = deterministic + cacheable; stochastic = uses the model; effectful = has side effects (needs a human gate). */
   determinism: Determinism;
   trust: TrustTier;
-  /** Precondition: input must satisfy this schema. */
+  /** Precondition: solve() rejects input that does not satisfy this schema (see src/schema.ts for the supported keywords). */
   inputSchema: JSONSchema;
   /** Postcondition: output is validated against this (also handed to the model as --json-schema for stochastic commands). */
   outputSchema: JSONSchema;
-  /** Ordered fallback ladder of command names. "freeform" is the universal base rung. */
+  /** Ordered fallback ladder of command names. "freeform" (plain Claude) is appended for every non-pure command. */
   fallbacks: string[];
   effectful: boolean;
   /** Model for stochastic commands (default: sonnet). */
   model?: string;
-  /** Full system prompt for stochastic commands (REPLACES the default — this is what keeps calls hermetic). */
+  /** Full system prompt for stochastic commands (REPLACES the default - this is what keeps calls hermetic). */
   systemPrompt?: string;
   /** Task instruction prepended to the input for stochastic commands. */
   promptTemplate?: string;
-  /** Retries-with-feedback before dropping to the next fallback rung (default: 2). */
+  /** Retries-with-feedback before dropping to the next fallback rung (default: 2; pure commands always run once). */
   maxAttempts?: number;
 }
 
@@ -35,7 +35,7 @@ export interface Verdict {
   ok: boolean;
   /** 0..1; reserved for telemetry / future RL reward shaping. */
   score?: number;
-  /** The command was unsure rather than wrong — triggers fallback/human, not a hard fail. */
+  /** The command was unsure rather than wrong - triggers fallback/human, not a hard fail. */
   abstain?: boolean;
   /** Why it failed; fed back into the next retry attempt. */
   feedback?: string;
@@ -67,7 +67,7 @@ export interface SolveResult {
   /** Which rung actually produced the accepted output ("freeform" if it fell all the way down). */
   command: string;
   attempts: number;
-  /** Set when a fallback rung (not the primary) produced the result. */
+  /** Set to the primary command name when a fallback rung (not the primary) produced the result. */
   fellBackTo?: string;
   verdict: Verdict;
   costUsd: number;

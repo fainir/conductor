@@ -145,3 +145,78 @@ test("runPipeline stops at a failed required step, and stores null for a failed 
   assert.equal(required.failedAt, "normalize_phone");
   assert.equal(required.state.slug, undefined);
 });
+
+// ---- regressions -------------------------------------------------------------------
+
+// Bug: inputs were never checked against inputSchema, so a missing or mistyped
+// argument ran the command anyway, failed its verifier, and fell through to
+// paid model calls that could not succeed.
+test("input that breaks the inputSchema is rejected up front: no execution, no model call, no telemetry", async () => {
+  const file = telemetry();
+  const res = await solve({ registry, command: "truncate", telemetryFile: file }, { text: "hello world" });
+  assert.equal(res.ok, false);
+  assert.equal(res.attempts, 0);
+  assert.equal(res.verdict.feedback, "invalid input: input: missing required property 'max'");
+
+  const typo = await solve({ registry, command: "summarize", telemetryFile: file }, { text: "x", max_sentence: 1 });
+  assert.equal(typo.ok, false);
+  assert.match(typo.verdict.feedback ?? "", /unexpected property 'max_sentence' \(allowed: text, max_sentences\)/);
+
+  assert.equal(fake.calls().length, 0);
+  assert.deepEqual(entries(file), []);
+});
+
+// Bug: every ladder ended in freeform, including pure commands. A pure command
+// whose verifier rejects its (deterministic) output was retried with identical
+// output, then sent to a paid model call that its recompute-style verifier
+// could never accept, and the caller got "all rungs exhausted" instead of the reason.
+test("a pure command that fails its verifier fails fast with the reason, and never calls the model", async () => {
+  const file = telemetry();
+  const res = await solve({ registry, command: "normalize_phone", telemetryFile: file }, { phone: "123" });
+  assert.equal(res.ok, false);
+  assert.equal(res.command, "normalize_phone");
+  assert.equal(res.attempts, 1);
+  assert.match(res.verdict.feedback ?? "", /^shape: normalized must match/);
+  assert.equal(fake.calls().length, 0);
+  assert.deepEqual(entries(file).map((e) => [e.command, e.ok]), [["normalize_phone", false]]);
+});
+
+test("a pure command that throws reports the error without a model call", async () => {
+  const res = await solve({ registry, command: "json_minify" }, { json: "{not json" });
+  assert.equal(res.ok, false);
+  assert.match(res.verdict.feedback ?? "", /^command threw: /);
+  assert.equal(fake.calls().length, 0);
+});
+
+// Bug: the freeform rung called verify() outside any try/catch, so a verifier
+// that threw on odd model output rejected the whole solve() (an MCP error).
+test("a verifier that throws on freeform output yields a failed result, not a rejection", async () => {
+  const fragile = {
+    manifest: {
+      name: "fragile", description: "test command", determinism: "stochastic" as const, trust: "unverified" as const,
+      inputSchema: { type: "object" }, outputSchema: { type: "object" }, fallbacks: [], effectful: false,
+      systemPrompt: "s", promptTemplate: "p", maxAttempts: 1,
+    },
+    verify: async (o: any) => {
+      if (o.boom) throw new Error("boom");
+      return { ok: false, feedback: "never good enough" };
+    },
+  };
+  fake.queue(structured({}), structured({ boom: true }));
+  const res = await solve({ registry: new Map([["fragile", fragile]]), command: "fragile" }, {});
+  assert.equal(res.ok, false);
+  assert.equal(res.command, "freeform");
+  assert.equal(res.verdict.feedback, "verifier threw: boom");
+});
+
+test("when the claude CLI is unavailable the failure says so", async () => {
+  const saved = process.env.PATH;
+  process.env.PATH = mkdtempSync(join(tmpdir(), "conductor-empty-path-"));
+  try {
+    const res = await solve({ registry, command: "summarize" }, summarizeInput);
+    assert.equal(res.ok, false);
+    assert.match(res.verdict.feedback ?? "", /`claude` CLI not found on PATH/);
+  } finally {
+    process.env.PATH = saved;
+  }
+});
