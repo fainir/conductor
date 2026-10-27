@@ -21,6 +21,7 @@
     "mcp": "tsx src/mcp.ts",
     "eval": "tsx eval/run-eval.ts",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
     "build": "esbuild src/mcp.ts --bundle --platform=node --target=node20 --format=cjs --outfile=dist/conductor-mcp.cjs --banner:js=\"#!/usr/bin/env node\"",
     "release": "node scripts/release.mjs",
     "scores": "tsx src/scores.ts",
