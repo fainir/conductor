@@ -19579,7 +19579,7 @@ async function solve(opts, input) {
 // package.json
 var package_default = {
   name: "@fainir/conductor",
-  version: "0.4.0",
+  version: "0.4.1",
   description: "Verified, deterministic tool calls for Claude Code: an MCP server (and Claude Code plugin) whose tools run through verify + retry + fallback over hermetic claude calls.",
   keywords: [
     "claude-code",
