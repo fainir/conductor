@@ -18058,18 +18058,25 @@ function ccArgs(opts) {
 }
 async function callClaude(opts) {
   return new Promise((resolve) => {
-    const child = (0, import_node_child_process.spawn)("claude", ccArgs(opts), { cwd: opts.cwd ?? process.cwd(), env: process.env });
+    const child = (0, import_node_child_process.spawn)("claude", ccArgs(opts), {
+      cwd: opts.cwd ?? process.cwd(),
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"]
+    });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
       child.kill("SIGKILL");
       resolve({ ok: false, text: "", costUsd: 0, isError: true, error: `timeout after ${opts.timeoutMs ?? DEFAULT_TIMEOUT}ms` });
     }, opts.timeoutMs ?? DEFAULT_TIMEOUT);
-    child.stdout.on("data", (d) => stdout += d.toString());
-    child.stderr.on("data", (d) => stderr += d.toString());
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (d) => stdout += d);
+    child.stderr.on("data", (d) => stderr += d);
     child.on("error", (err) => {
       clearTimeout(timer);
-      resolve({ ok: false, text: "", costUsd: 0, isError: true, error: `spawn error: ${err.message}` });
+      const error2 = err.code === "ENOENT" ? "`claude` CLI not found on PATH. Install Claude Code and log in: https://code.claude.com/docs/en/setup" : `spawn error: ${err.message}`;
+      resolve({ ok: false, text: "", costUsd: 0, isError: true, error: error2 });
     });
     child.on("close", () => {
       clearTimeout(timer);
@@ -18088,7 +18095,7 @@ async function callClaude(opts) {
         const parsed = tryParseJson(text);
         if (parsed !== void 0) structured = parsed;
       }
-      resolve({ ok: !isError, structured, text, costUsd, isError, raw: env });
+      resolve({ ok: !isError, structured, text, costUsd, isError, error: isError ? text || "claude reported an error" : void 0, raw: env });
     });
   });
 }

@@ -1,5 +1,8 @@
 import { test, after, beforeEach } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { ccArgs, callClaude, callClaudeRetry, tryParseJson } from "../src/cc.js";
 import { installFakeClaude, structured, flag, promptOf } from "./helpers/fake-claude.js";
 
@@ -91,4 +94,42 @@ test("callClaudeRetry: retries when structured output is missing, then returns t
   const r = await callClaudeRetry({ prompt: "p", systemPrompt: "s", jsonSchema: { type: "object" } }, 1);
   assert.deepEqual(r.structured, { ok: 1 });
   assert.equal(fake.calls().length, 2);
+});
+
+// Regression: stdin was left as an open pipe. The real CLI waits up to 3s for
+// piped stdin before it starts, so every model call stalled for 3 seconds.
+test("callClaude: the child's stdin is closed so the CLI does not wait for piped input", async () => {
+  fake.queue(structured({ a: 1 }));
+  await callClaude({ prompt: "p", systemPrompt: "s" });
+  assert.equal(fake.calls()[0].stdinClosed, true);
+});
+
+// Regression: chunks were decoded one by one, so a multi-byte character split
+// across two stdout chunks came out as U+FFFD replacement characters.
+test("callClaude: UTF-8 split across stdout chunks is decoded intact", async () => {
+  const value = { translation: "שלום עולם, こんにちは" };
+  const raw = JSON.stringify({ is_error: false, result: JSON.stringify(value), structured_output: value, total_cost_usd: 0 });
+  const splitAt = Buffer.from(raw.slice(0, raw.indexOf("ש") + 1), "utf8").length - 1; // inside the first Hebrew letter
+  fake.queue({ raw, splitAt });
+  const r = await callClaude({ prompt: "p", systemPrompt: "s", jsonSchema: { type: "object" } });
+  assert.equal(r.text, JSON.stringify(value));
+  assert.deepEqual(r.structured, value);
+});
+
+test("callClaude: a missing claude binary gets an actionable error", async () => {
+  const saved = process.env.PATH;
+  process.env.PATH = mkdtempSync(join(tmpdir(), "conductor-empty-path-"));
+  try {
+    const r = await callClaude({ prompt: "p", systemPrompt: "s" });
+    assert.equal(r.ok, false);
+    assert.match(r.error ?? "", /`claude` CLI not found on PATH/);
+  } finally {
+    process.env.PATH = saved;
+  }
+});
+
+test("callClaude: an error envelope carries its message in error", async () => {
+  fake.queue({ envelope: { is_error: true, result: "Credit balance is too low", total_cost_usd: 0 } });
+  const r = await callClaude({ prompt: "p", systemPrompt: "s" });
+  assert.equal(r.error, "Credit balance is too low");
 });

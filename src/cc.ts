@@ -1,8 +1,8 @@
-// cc.ts — the single reliable model call.
+// cc.ts - the single reliable model call.
 // Drives the `claude` CLI in headless mode on your subscription auth.
 //
 // HERMETIC BY DEFAULT. The defaults below isolate every call from ambient
-// context (global CLAUDE.md, user identity, foreign hooks) — without this,
+// context (global CLAUDE.md, user identity, foreign hooks) - without this,
 // a trivial extraction call leaked the operator's own email instead of the
 // input's. Isolation is a reliability primitive, not a nicety.
 
@@ -10,7 +10,7 @@ import { spawn } from "node:child_process";
 
 export interface CCOptions {
   prompt: string;
-  /** REQUIRED. Fully REPLACES claude's default system prompt — this is what kills ambient pollution. */
+  /** REQUIRED. Fully REPLACES claude's default system prompt - this is what kills ambient pollution. */
   systemPrompt: string;
   /** Native structured-output validation; result lands in envelope.structured_output. */
   jsonSchema?: Record<string, unknown>;
@@ -55,7 +55,12 @@ export function ccArgs(opts: CCOptions): string[] {
 
 export async function callClaude<T = unknown>(opts: CCOptions): Promise<CCResult<T>> {
   return new Promise((resolve) => {
-    const child = spawn("claude", ccArgs(opts), { cwd: opts.cwd ?? process.cwd(), env: process.env });
+    // stdin is "ignore" (EOF right away): with an open stdin pipe the CLI waits 3s for piped input on every call.
+    const child = spawn("claude", ccArgs(opts), {
+      cwd: opts.cwd ?? process.cwd(),
+      env: process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
     let stdout = "";
     let stderr = "";
     const timer = setTimeout(() => {
@@ -63,11 +68,18 @@ export async function callClaude<T = unknown>(opts: CCOptions): Promise<CCResult
       resolve({ ok: false, text: "", costUsd: 0, isError: true, error: `timeout after ${opts.timeoutMs ?? DEFAULT_TIMEOUT}ms` });
     }, opts.timeoutMs ?? DEFAULT_TIMEOUT);
 
-    child.stdout.on("data", (d) => (stdout += d.toString()));
-    child.stderr.on("data", (d) => (stderr += d.toString()));
-    child.on("error", (err) => {
+    // setEncoding keeps multi-byte UTF-8 characters intact across chunk boundaries.
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
+    child.stdout.on("data", (d: string) => (stdout += d));
+    child.stderr.on("data", (d: string) => (stderr += d));
+    child.on("error", (err: NodeJS.ErrnoException) => {
       clearTimeout(timer);
-      resolve({ ok: false, text: "", costUsd: 0, isError: true, error: `spawn error: ${err.message}` });
+      const error =
+        err.code === "ENOENT"
+          ? "`claude` CLI not found on PATH. Install Claude Code and log in: https://code.claude.com/docs/en/setup"
+          : `spawn error: ${err.message}`;
+      resolve({ ok: false, text: "", costUsd: 0, isError: true, error });
     });
     child.on("close", () => {
       clearTimeout(timer);
@@ -86,7 +98,7 @@ export async function callClaude<T = unknown>(opts: CCOptions): Promise<CCResult
         const parsed = tryParseJson(text);
         if (parsed !== undefined) structured = parsed as T;
       }
-      resolve({ ok: !isError, structured, text, costUsd, isError, raw: env });
+      resolve({ ok: !isError, structured, text, costUsd, isError, error: isError ? text || "claude reported an error" : undefined, raw: env });
     });
   });
 }
