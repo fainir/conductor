@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;background:transparent}body{width:1100px;padding:24px;box-sizing:border-box;font-family:Menlo,"SF Mono",monospace;font-size:15px;line-height:1.55}
+.win{background:#0f172a;border-radius:14px;box-shadow:0 20px 50px -20px rgba(15,23,42,.55);overflow:hidden;border:1px solid #1e293b}
+.bar{height:38px;background:#111c33;display:flex;align-items:center;padding:0 16px;gap:8px;border-bottom:1px solid #1e293b}
+.dot{width:12px;height:12px;border-radius:50%}.title{color:#64748b;font-size:13px;margin-left:12px}
+pre{margin:0;padding:22px 26px 26px;color:#cbd5e1;white-space:pre-wrap;font:inherit}
+.p{color:#f8fafc;font-weight:bold}.g{color:#34d399}.r{color:#f87171}.m{color:#64748b}.y{color:#fbbf24}.h{color:#93c5fd;font-weight:bold}
+</style></head><body><div class="win"><div class="bar"><span class="dot" style="background:#ef4444"></span><span class="dot" style="background:#f59e0b"></span><span class="dot" style="background:#22c55e"></span><span class="title">conductor - every tool checks its own output (real CLI output)</span></div><pre><span class="p">$ npx tsx src/cli.ts slugify &#x27;{&quot;text&quot;:&quot;Hello, World!&quot;}&#x27;</span>
+{ &quot;ok&quot;: true, &quot;output&quot;: { &quot;slug&quot;: &quot;hello-world&quot; }, &quot;attempts&quot;: 1,
+  &quot;verdict&quot;: { &quot;ok&quot;: true, &quot;score&quot;: 1 }, &quot;costUsd&quot;: 0 }
+
+<span class="p">$ npx tsx src/cli.ts normalize_phone &#x27;{&quot;phone&quot;:&quot;call me&quot;}&#x27;</span>
+<span class="r">{ &quot;ok&quot;: false, &quot;attempts&quot;: 1,</span>
+<span class="r">  &quot;verdict&quot;: { &quot;ok&quot;: false, &quot;score&quot;: 0,</span>
+<span class="r">    &quot;feedback&quot;: &quot;shape: normalized must match /^\\+?\\d{6,15}$/ (optional &#x27;+&#x27;, 6-15 digits)&quot; } }</span>
+
+<span class="m">A wrong answer is never passed through: it is retried with the feedback,</span>
+<span class="m">handed to a fallback, or returned as a failure the calling model can fix.</span></pre></div></body></html>
