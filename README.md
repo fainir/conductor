@@ -16,6 +16,10 @@ fallback, or returned as a failure; it is never silently passed through.
 The skeleton (validate -> execute -> **verify** -> retry -> fallback -> log) is real code that
 cannot be skipped; the model is quarantined to the judgment-shaped holes.
 
+<p align="center">
+  <img src="assets/demo.png" width="860" alt="conductor's CLI: slugify returns ok with a verdict score of 1; normalize_phone with 'call me' is rejected by the verifier with feedback explaining the expected shape.">
+</p>
+
 ## Quick start
 
 You need [Claude Code](https://code.claude.com/docs/en/setup) installed and logged in, and Node.js
