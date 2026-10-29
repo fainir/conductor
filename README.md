@@ -53,9 +53,8 @@ git clone https://github.com/fainir/conductor
 claude mcp add conductor -s user -- node "$PWD/conductor/dist/conductor-mcp.cjs"
 ```
 
-Other MCP clients can run `npx -y github:fainir/conductor`, which serves MCP over stdio (the first
-start clones the repo and installs its dependencies, so it is slow). The package is not published
-to npm; the unrelated `conductor-mcp` package there belongs to someone else.
+Other MCP clients can run `npx -y @fainir/conductor`, which serves MCP over stdio. The unrelated
+`conductor-mcp` package on npm belongs to someone else.
 
 ## Usage
 

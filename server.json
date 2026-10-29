@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.fainir/conductor",
+  "title": "conductor",
+  "description": "Verified tool calls for Claude Code: verify, retry and fallback over hermetic claude calls.",
+  "repository": {
+    "url": "https://github.com/fainir/conductor",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/fainir/conductor#readme",
+  "version": "0.4.1",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@fainir/conductor",
+      "version": "0.4.1",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
