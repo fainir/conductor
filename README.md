@@ -2,6 +2,7 @@
 
 [![CI](https://github.com/fainir/conductor/actions/workflows/ci.yml/badge.svg)](https://github.com/fainir/conductor/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/@fainir/conductor)](https://www.npmjs.com/package/@fainir/conductor)
 
 Verified tool calls for Claude Code: an MCP server (installable as a plugin) whose 23 tools check
 their own output in code before you get it.
