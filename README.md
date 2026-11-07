@@ -40,8 +40,12 @@ $ claude mcp list
 plugin:conductor:conductor: node /Users/you/.claude/plugins/cache/conductor/conductor/0.4.1/dist/conductor-mcp.cjs - ✓ Connected
 ```
 
-Then ask for the job in plain words, for example "redact the PII in this ticket with conductor".
-The tools show up as `mcp__plugin_conductor_conductor__<tool>`.
+Try this first in Claude Code:
+
+> Use Conductor's slugify tool to turn `Hello, World!` into a URL slug.
+
+Look for `hello-world` and `verdict.ok: true` in the tool result. The slugify tool runs as code. In a plugin install its name is
+`mcp__plugin_conductor_conductor__slugify`.
 
 Update with `claude plugin marketplace update conductor && claude plugin update conductor@conductor`,
 remove with `claude plugin uninstall conductor@conductor`.
