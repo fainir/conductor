@@ -24,7 +24,7 @@ cannot be skipped; the model is quarantined to the judgment-shaped holes.
 ## Quick start
 
 You need [Claude Code](https://code.claude.com/docs/en/setup) installed and logged in, and Node.js
-20 or newer on your `PATH` (the plugin starts the server with `node`).
+20.11 or newer on your `PATH` (the plugin starts the server with `node`).
 
 ```bash
 claude plugin marketplace add fainir/conductor
@@ -60,6 +60,20 @@ claude mcp add conductor -s user -- node "$PWD/conductor/dist/conductor-mcp.cjs"
 
 Other MCP clients can run `npx -y @fainir/conductor`, which serves MCP over stdio. The unrelated
 `conductor-mcp` package on npm belongs to someone else.
+
+For clients that use a `mcpServers` JSON configuration, add the `conductor`
+entry below to your existing settings.
+
+```json
+{
+  "mcpServers": {
+    "conductor": {
+      "command": "npx",
+      "args": ["-y", "@fainir/conductor"]
+    }
+  }
+}
+```
 
 ## Usage
 
